@@ -446,3 +446,7 @@ export function isNumeric(str: string) {
 		!isNaN(parseFloat(str))
 	); // ...and ensure strings of whitespace fail
 }
+
+export function stripCr(text: string) {
+	return text.replace(/\r/g, "");
+}

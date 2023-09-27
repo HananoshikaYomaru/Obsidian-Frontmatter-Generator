@@ -12,9 +12,12 @@ const primativeSchema = z
 	.or(z.null());
 const schema = z.array(primativeSchema).or(primativeSchema);
 type Schema = z.infer<typeof schema>;
+
 export function evalFromExpression(
 	expression: string,
-	file: TFile
+	context: {
+		file: TFile;
+	}
 ):
 	| {
 			success: false;
@@ -25,9 +28,7 @@ export function evalFromExpression(
 	  }
 	| { success: true; object: { [key: string]: Schema } } {
 	try {
-		const object = safeEval(expression, {
-			file,
-		});
+		const object = safeEval(expression, context);
 		if (typeof object !== "object") {
 			return {
 				success: false,

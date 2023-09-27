@@ -35,11 +35,14 @@ The syntax is not a yaml! It is just a map from a key to value. Each key-value p
 ## How to release
 
 ```
+# update the version number in package.json
 bun version
+git add .
+git commit -m <message>
 git tag -a <version> -m <version>
 git push origin <version>
 git push
-
 # after the release workflow done, update the release doc on github
 ```
+
  -->
