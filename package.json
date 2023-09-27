@@ -1,32 +1,38 @@
 {
-	"name": "obsidian-frontmatter-generator",
-	"version": "1.0.0",
-	"description": "A plugin for Obsidian that generates frontmatter for notes.",
-	"main": "main.js",
-	"scripts": {
-		"dev": "bun esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && bun esbuild.config.mjs production",
-		"version": "bun version-bump.mjs && git add manifest.json versions.json",
-		"prepare": "husky install"
-	},
-	"keywords": [
-		"obsidian",
-		"plugin",
-		"frontmatter",
-		"generator",
-		"yaml"
-	],
-	"author": "Hananoshika Yomaru",
-	"license": "MIT",
-	"devDependencies": {
-		"@types/node": "^16.11.6",
-		"@typescript-eslint/eslint-plugin": "5.29.0",
-		"@typescript-eslint/parser": "5.29.0",
-		"builtin-modules": "3.3.0",
-		"esbuild": "0.17.3",
-		"husky": "^8.0.3",
-		"obsidian": "latest",
-		"tslib": "2.4.0",
-		"typescript": "^5.0.5"
-	}
+  "name": "obsidian-frontmatter-generator",
+  "version": "1.0.0",
+  "description": "A plugin for Obsidian that generates frontmatter for notes.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "bun esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && bun esbuild.config.mjs production",
+    "version": "bun version-bump.mjs && git add manifest.json versions.json",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "frontmatter",
+    "generator",
+    "yaml"
+  ],
+  "author": "Hananoshika Yomaru",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "@typescript-eslint/eslint-plugin": "5.29.0",
+    "@typescript-eslint/parser": "5.29.0",
+    "builtin-modules": "3.3.0",
+    "esbuild": "0.17.3",
+    "husky": "^8.0.3",
+    "obsidian": "latest",
+    "tslib": "2.4.0",
+    "typescript": "^5.0.5"
+  },
+  "dependencies": {
+    "@total-typescript/ts-reset": "^0.5.1",
+    "flatted": "^3.2.9",
+    "safe-eval": "^0.4.1",
+    "zod": "^3.22.2"
+  }
 }

@@ -5,16 +5,34 @@ import {
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	TFile,
 } from "obsidian";
+import "@total-typescript/ts-reset";
+import { evalFromExpression } from "./evalFromExpression";
 
-// Remember to rename these classes and interfaces!
+const setRealTimePreview = (
+	element: HTMLElement,
+	expression: string,
+	file: TFile
+) => {
+	const result = evalFromExpression(expression, file);
+	if (!result.success) {
+		console.error(result.error.cause);
+		console.log(file);
+		element.innerHTML = result.error.message;
+	} else {
+		// there is object
+		// set the real time preview
+		element.innerHTML = JSON.stringify(result.object, null, 2);
+	}
+};
 
 interface FrontmatterGeneratorPluginSettings {
 	template: string;
 }
 
 const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
-	template: "",
+	template: "{}",
 };
 
 export default class FrontmatterGeneratorPlugin extends Plugin {
@@ -36,10 +54,15 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 					this.app.workspace.getActiveViewOfType(
 						MarkdownView
 					)?.editor;
+				const file = this.app.workspace.getActiveFile();
 
-				if (!editor) return;
+				if (!editor || !file) return;
 
-				console.log("it is working", this.settings.template);
+				const context = {
+					file,
+				};
+
+				console.log("it is working", this.settings.template, file);
 			};
 		}
 	}
@@ -130,27 +153,61 @@ class SettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	getSampleFile() {
+		const allFiles = this.app.vault.getMarkdownFiles();
+		const filesInRoot = allFiles.filter(
+			(file) => file.parent?.path === "/"
+		);
+		const filesInFolder = allFiles
+			.filter((file) => file.parent?.path !== "/")
+			.sort((a, b) => {
+				const aDepth = a.path.split("/").length - 1;
+				const bDepth = b.path.split("/").length - 1;
+				if (aDepth === bDepth) return 0;
+				return aDepth > bDepth ? 1 : -1;
+			});
+
+		return filesInFolder[0] ?? filesInRoot[0];
+	}
+
 	display(): void {
 		const { containerEl } = this;
 
 		containerEl.empty();
 
+		const sampleFile = this.getSampleFile();
 		const fragment = new DocumentFragment();
 		const desc = document.createElement("div");
 		desc.innerHTML = [
-			`A map from a key to value. Each key-value pair is separated by new line.`,
-			`The syntax is not a yaml!`,
-			"for example, the following frontmatter template will cause the file `Good recipes/scrambled egg.md` to have the following frontmatter:",
+			`A map from a key to value.`,
+			`for example, the following frontmatter template will cause the file "${sampleFile?.path}" to have the following frontmatter:`,
 			"",
-			"folder: file.folder",
-			"title: file.title",
+			`folder: file.parent.path`,
+			"title: file.basename",
 			"",
 			"↓↓↓↓↓↓↓↓↓ generate ↓↓↓↓↓↓↓↓↓",
 			"",
-			"folder: Good recipes",
-			"title: scrambled egg",
+			`folder: ${sampleFile?.parent?.path}`,
+			`title: ${sampleFile?.basename}`,
+			``,
+			`Note: If you see error, it means that the template is not valid. Please check the console for more information.`,
 		].join("<br />");
+
 		fragment.appendChild(desc);
+
+		const realTimePreview = document.createElement("pre");
+		realTimePreview.style.textAlign = "left";
+		realTimePreview.style.maxWidth = "300px";
+		realTimePreview.style.whiteSpace = "pre-wrap";
+
+		if (sampleFile) {
+			setRealTimePreview(
+				realTimePreview,
+				this.plugin.settings.template,
+				sampleFile
+			);
+		}
+
 		new Setting(containerEl)
 			.setName("Frontmatter Template")
 			.setDesc(fragment)
@@ -160,10 +217,24 @@ class SettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.template = value;
 						await this.plugin.saveSettings();
+
+						if (!sampleFile) return;
+						// try to update the real time preview
+						setRealTimePreview(
+							realTimePreview,
+							this.plugin.settings.template,
+							sampleFile
+						);
 					});
 				text.inputEl.style.minWidth = text.inputEl.style.maxWidth =
 					"300px";
 				text.inputEl.style.minHeight = "200px";
+
+				if (text.inputEl.parentElement) {
+					text.inputEl.parentElement.style.flexDirection = "column";
+					text.inputEl.parentElement.style.alignItems = "flex-start";
+				}
+				text.inputEl.insertAdjacentElement("afterend", realTimePreview);
 				return text;
 			});
 	}
