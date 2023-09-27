@@ -35,6 +35,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 	shouldIgnoreFile(file: TFile, oldText?: string) {
 		// if file path is in ignoredFolders, return true
+
 		if (
 			this.settings.internal.ignoredFolders.includes(
 				file.parent?.path as string

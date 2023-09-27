@@ -90,6 +90,7 @@ export class SettingTab extends PluginSettingTab {
 				if (text.inputEl.parentElement) {
 					text.inputEl.parentElement.style.flexDirection = "column";
 					text.inputEl.parentElement.style.alignItems = "flex-start";
+					text.inputEl.parentElement.style.maxWidth = "300px";
 				}
 				text.inputEl.insertAdjacentElement("afterend", realTimePreview);
 				return text;
@@ -133,6 +134,7 @@ export class SettingTab extends PluginSettingTab {
 				if (text.inputEl.parentElement) {
 					text.inputEl.parentElement.style.flexDirection = "column";
 					text.inputEl.parentElement.style.alignItems = "flex-start";
+					text.inputEl.parentElement.style.maxWidth = "300px";
 				}
 				text.inputEl.insertAdjacentElement("afterend", realTimePreview);
 
