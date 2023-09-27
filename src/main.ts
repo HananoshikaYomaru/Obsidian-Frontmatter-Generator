@@ -16,7 +16,7 @@ import { deepInclude } from "./utils/deepInclude";
 import { writeFile } from "./writeFile";
 import { stripCr } from "./utils/strings";
 import { ConfirmationModal } from "./ui/modals/confirmationModal";
-import { SettingTab } from "./SettingTab";
+import { SettingTab } from "./ui/SettingTab";
 import {
 	FrontmatterGeneratorPluginSettings,
 	DEFAULT_SETTINGS,
@@ -60,8 +60,8 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	addCommands() {
 		const that = this;
 		this.addCommand({
-			id: "gen-file",
-			name: "lint file",
+			id: "run-file",
+			name: "run file",
 			editorCheckCallback(checking, editor, ctx) {
 				if (!ctx.file) return;
 				if (checking) {
@@ -71,13 +71,13 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			},
 		});
 		this.addCommand({
-			id: "lint-all-files",
-			name: "Lint all files",
+			id: "run-all-files",
+			name: "Run all files",
 			callback: () => {
 				const startMessage =
-					"Are you sure you want to lint all files in your vault? This may take a while.";
-				const submitBtnText = "Lint all files";
-				const submitBtnNoticeText = "Linting all files...";
+					"Are you sure you want to run all files in your vault? This may take a while.";
+				const submitBtnText = "Run all files";
+				const submitBtnNoticeText = "Runing all files...";
 				new ConfirmationModal(
 					this.app,
 					startMessage,
@@ -91,32 +91,32 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "lint-all-files-in-folder",
-			name: "Lint all files in folder",
+			id: "run-all-files-in-folder",
+			name: "Run all files in folder",
 			editorCheckCallback: (checking: Boolean, _, ctx) => {
 				if (checking) {
 					return !ctx.file?.parent?.isRoot();
 				}
 
 				if (ctx.file?.parent)
-					this.createFolderLintModal(ctx.file.parent);
+					this.createFolderRunModal(ctx.file.parent);
 			},
 		});
 	}
 
 	// handles the creation of the folder linting modal since this happens in multiple places and it should be consistent
-	createFolderLintModal(folder: TFolder) {
-		const startMessage = `Are you sure you want to lint all files in the folder ${folder.name}? This may take a while.`;
-		// const submitBtnText = getTextInLanguage('commands.lint-all-files-in-folder.submit-button-text').replace('{FOLDER_NAME}', folder.name);
-		const submitBtnText = `Lint all files in ${folder.name}`;
+	createFolderRunModal(folder: TFolder) {
+		const startMessage = `Are you sure you want to run all files in the folder ${folder.name}? This may take a while.`;
+		// const submitBtnText = getTextInLanguage('commands.run-all-files-in-folder.submit-button-text').replace('{FOLDER_NAME}', folder.name);
+		const submitBtnText = `Run all files in ${folder.name}`;
 
-		const submitBtnNoticeText = `Linting all files in ${folder.name}...`;
+		const submitBtnNoticeText = `Runing all files in ${folder.name}...`;
 		new ConfirmationModal(
 			this.app,
 			startMessage,
 			submitBtnText,
 			submitBtnNoticeText,
-			() => this.runLinterAllFilesInFolder(folder)
+			() => this.runRunerAllFilesInFolder(folder)
 		).open();
 	}
 
@@ -356,7 +356,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		return file && file.extension === "md";
 	}
 
-	async runLinterAllFilesInFolder(folder: TFolder) {
+	async runRunerAllFilesInFolder(folder: TFolder) {
 		let numberOfErrors = 0;
 		let lintedFiles = 0;
 		const filesInFolder = this.getAllFilesInFolder(folder);

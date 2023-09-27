@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import FrontmatterGeneratorPlugin from "./main";
-import { setRealTimePreview } from "./setRealTimePreview";
+import FrontmatterGeneratorPlugin from "../main";
+import { setRealTimePreview } from "../setRealTimePreview";
 
 export class SettingTab extends PluginSettingTab {
 	plugin: FrontmatterGeneratorPlugin;

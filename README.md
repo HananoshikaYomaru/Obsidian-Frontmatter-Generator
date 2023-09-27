@@ -14,6 +14,7 @@ for example, the following frontmatter template
 ```
 folder: file.folder
 title: file.title
+test: [1, 2, 3]
 ```
 
 will generate this in the file `Good recipes/scrambled egg.md`
@@ -21,15 +22,20 @@ will generate this in the file `Good recipes/scrambled egg.md`
 ```
 folder: Good recipes
 title: scrambled egg
+test:
+  - "1"
+  - "2"
 ```
 
 ### Syntax of the frontmatter template
 
-The syntax is not a yaml! It is just a map from a key to value. Each key-value pair is separated by new line.
+It is just a json
 
 ## Note
 
-1. to stop generate on a file, you can put `yaml-gen-ignore: true` on the frontmatter.
+1. to stop generate on a file, you can put `yaml-gen-ignore: true` on the frontmatter. You can also ignore the whole folder in the seting.
+2. the context that you can access is [TFile](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile). This can be update in the future. It is extremely flexible.
+3. If you want to contribute, first open an issue.
 
 <!--
 ## How to release
