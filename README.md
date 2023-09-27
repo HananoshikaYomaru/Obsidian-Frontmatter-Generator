@@ -30,3 +30,16 @@ The syntax is not a yaml! It is just a map from a key to value. Each key-value p
 ## Note
 
 1. to stop generate on a file, you can put `fm-gen-ignore: true` on the frontmatter.
+
+<!--
+## How to release
+
+```
+bun version
+git tag -a <version> -m <version>
+git push origin <version>
+git push
+
+# after the release workflow done, update the release doc on github
+```
+ -->
