@@ -2,13 +2,23 @@ import {
 	App,
 	EventRef,
 	MarkdownView,
+	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
 	TFile,
+	parseYaml,
+	stringifyYaml,
 } from "obsidian";
 import "@total-typescript/ts-reset";
 import { evalFromExpression } from "./evalFromExpression";
+import { getYAMLText, initYAML } from "./utils/yaml";
+import { deepInclude } from "./utils/deepInclude";
+import { writeFile } from "./writeFile";
+
+enum YamlKey {
+	IGNORE = "yaml-gen-ignore",
+}
 
 const setRealTimePreview = (
 	element: HTMLElement,
@@ -18,12 +28,15 @@ const setRealTimePreview = (
 	const result = evalFromExpression(expression, file);
 	if (!result.success) {
 		console.error(result.error.cause);
+		// this is needed so that it is easier to debug
 		console.log(file);
 		element.innerHTML = result.error.message;
+		element.style.color = "red";
 	} else {
 		// there is object
 		// set the real time preview
 		element.innerHTML = JSON.stringify(result.object, null, 2);
+		element.style.color = "white";
 	}
 };
 
@@ -47,8 +60,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		if (typeof this.previousSaveCommand === "function") {
 			saveCommandDefinition.callback = () => {
-				// run the previous save command
-				this.previousSaveCommand();
 				// get the tags of the current file
 				const editor =
 					this.app.workspace.getActiveViewOfType(
@@ -58,11 +69,74 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 				if (!editor || !file) return;
 
-				const context = {
-					file,
-				};
+				// set the frontmatter
+				const result = evalFromExpression(this.settings.template, file);
 
-				console.log("it is working", this.settings.template, file);
+				if (!result.success) {
+					const fragment = new DocumentFragment();
+					const desc = document.createElement("div");
+					desc.innerHTML =
+						"Obsidian Frontmatter Generator: Invalid template";
+					desc.style.color = "red";
+					fragment.appendChild(desc);
+
+					new Notice(fragment);
+					return;
+				}
+
+				// if there is no object, or the object is empty, do nothing
+				if (
+					!result.object ||
+					typeof result.object !== "object" ||
+					Object.keys(result.object).length === 0
+				)
+					return;
+
+				const oldText = editor.getValue();
+
+				const newText = initYAML(oldText);
+				// now there must be a YAML section
+				const yaml = getYAMLText(newText) as string;
+
+				const oldYamlObj = parseYaml(yaml) as {
+					[x: string]: any;
+				} | null;
+				// if the YAML has the ignore key
+				if (oldYamlObj && oldYamlObj[YamlKey.IGNORE]) return;
+
+				// check the yaml object, if the yaml object includes all keys of the result object
+				// and the corresponding values are the same, do nothing
+				if (yaml && deepInclude(oldYamlObj, result.object)) return;
+
+				// now you have the yaml object, combine it with the result object
+				// combine them
+				const yamlObj = {
+					...(oldYamlObj ?? {}),
+					...result.object,
+				};
+				Object.assign(yamlObj, result.object);
+
+				// set the yaml section
+				const yamlText = stringifyYaml(yamlObj);
+
+				// replace the yaml section
+				if (yaml) {
+					const parts = oldText.split(/^---$/m);
+					writeFile(
+						editor,
+						oldText,
+						`---\n${yamlText}---\n\n${parts[2]!.trim()}`
+					);
+				} else {
+					writeFile(
+						editor,
+						oldText,
+						`---\n${yamlText}---\n\n${oldText}`
+					);
+				}
+
+				// run the previous save command
+				this.previousSaveCommand();
 			};
 		}
 	}
@@ -76,48 +150,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.registerEventsAndSaveCallback();
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		// const statusBarItemEl = this.addStatusBarItem();
-		// statusBarItemEl.setText("Status Bar Text");
-
-		// This adds a simple command that can be triggered anywhere
-		// this.addCommand({
-		// 	id: "open-sample-modal-simple",
-		// 	name: "Open sample modal (simple)",
-		// 	callback: () => {
-		// 		new SampleModal(this.app).open();
-		// 	},
-		// });
-		// This adds an editor command that can perform some operation on the current editor instance
-		// this.addCommand({
-		// 	id: "sample-editor-command",
-		// 	name: "Sample editor command",
-		// 	editorCallback: (editor: Editor, view: MarkdownView) => {
-		// 		console.log(editor.getSelection());
-		// 		editor.replaceSelection("Sample Editor Command");
-		// 	},
-		// });
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		// this.addCommand({
-		// 	id: "open-sample-modal-complex",
-		// 	name: "Open sample modal (complex)",
-		// 	checkCallback: (checking: boolean) => {
-		// 		// Conditions to check
-		// 		const markdownView =
-		// 			this.app.workspace.getActiveViewOfType(MarkdownView);
-		// 		if (markdownView) {
-		// 			// If checking is true, we're simply "checking" if the command can be run.
-		// 			// If checking is false, then we want to actually perform the operation.
-		// 			if (!checking) {
-		// 				new SampleModal(this.app).open();
-		// 			}
-
-		// 			// This command will only show up in Command Palette when the check function returns true
-		// 			return true;
-		// 		}
-		// 	},
-		// });
 
 		// TODO: create a command that generate frontmatter on the whole vault
 
@@ -199,6 +231,7 @@ class SettingTab extends PluginSettingTab {
 		realTimePreview.style.textAlign = "left";
 		realTimePreview.style.maxWidth = "300px";
 		realTimePreview.style.whiteSpace = "pre-wrap";
+		realTimePreview.style.color = "white";
 
 		if (sampleFile) {
 			setRealTimePreview(

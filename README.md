@@ -29,7 +29,7 @@ The syntax is not a yaml! It is just a map from a key to value. Each key-value p
 
 ## Note
 
-1. to stop generate on a file, you can put `fm-gen-ignore: true` on the frontmatter.
+1. to stop generate on a file, you can put `yaml-gen-ignore: true` on the frontmatter.
 
 <!--
 ## How to release
