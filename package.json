@@ -1,11 +1,11 @@
 {
 	"name": "obsidian-frontmatter-generator",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "A plugin for Obsidian that generates frontmatter for notes.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "bun esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && bun esbuild.config.mjs production",
+		"build": "bun esbuild.config.mjs production",
 		"version": "bun version-bump.mjs && git add manifest.json versions.json",
 		"prepare": "husky install"
 	},
