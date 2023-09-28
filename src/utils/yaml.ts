@@ -484,6 +484,7 @@ function basicEscapeString(
 
 export const splitYamlAndBody = (markdown: string) => {
 	const parts = markdown.split(/^---$/m);
+	if (!markdown.startsWith("---")) return markdown;
 	if (parts.length === 1) {
 		return {
 			yaml: undefined,
