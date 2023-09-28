@@ -1,16 +1,16 @@
-import { TFile } from "obsidian";
-import { evalFromExpression } from "./evalFromExpression";
+import { EvalResult } from "./evalFromExpression";
 
 export const setRealTimePreview = (
 	element: HTMLElement,
-	expression: string,
-	file: TFile
+	result: EvalResult,
+	context?: {
+		[x: string]: any;
+	}
 ) => {
-	const result = evalFromExpression(expression, { file });
 	if (!result.success) {
 		console.error(result.error.cause);
 		// this is needed so that it is easier to debug
-		console.log(file);
+		if (context) console.log(context);
 		element.innerHTML = result.error.message;
 		element.style.color = "red";
 	} else {

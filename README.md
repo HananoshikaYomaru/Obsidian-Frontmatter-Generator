@@ -11,27 +11,52 @@ Generate your frontmatter on save.
 
 for example, the following frontmatter template
 
-```
-folder: file.folder
-title: file.title
-test: ["1", "2"]
+```ts
+{
+	folder: file.parent.path;
+	title: file.basename;
+	test: ["1", "2"];
+}
 ```
 
 will generate this in the file `Good recipes/scrambled egg.md` on save.
 
-```
+```yaml
 folder: Good recipes
 title: scrambled egg
 test:
-  - "1"
-  - "2"
+    - "1"
+    - "2"
 ```
 
 Demo: https://youtu.be/Cz9d5e1WQVM
 
-### Syntax of the frontmatter template
+## Advanced usage
 
-It is just a json. It can access the [TFile](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile) and do javascript operation
+### conditional expression
+
+```ts
+file.properties?.type === "kanban"
+	? {
+			folder: file.parent.path,
+			title: file.basename,
+	  }
+	: {};
+```
+
+### function
+
+```ts
+{
+	test: (() => {
+		return { test: "test" };
+	})();
+}
+```
+
+## Syntax of the frontmatter template
+
+It could be a json or a javascript expression that return an object.
 
 ![](https://share.cleanshot.com/nfW5nV8L+)
 
@@ -40,6 +65,12 @@ It is just a json. It can access the [TFile](https://docs.obsidian.md/Reference/
 ![](https://share.cleanshot.com/2bH8BXRg+)
 
 <small>^ async function doesn't work</small>
+
+## Variable that it can access
+
+-   [`TFile`](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile)
+-   `file.properties` will access the yaml object of the current file
+-   `dv`, the [dataview](https://blacksmithgu.github.io/obsidian-dataview/) object
 
 ## Installation
 
@@ -58,7 +89,7 @@ It is just a json. It can access the [TFile](https://docs.obsidian.md/Reference/
 
 1. to stop generate on a file, you can put `yaml-gen-ignore: true` on the frontmatter. You can also ignore the whole folder in the seting.
 2. the context that you can access is [TFile](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile). This can be update in the future. It is extremely flexible.
-3. This plugin also
+3. This plugin also comes with some command to run in folder and in the whole vault.
 4. If you want to contribute, first open an issue.
 5. 🚨 This plugin is still under development, don't try to hack it by using weird keywords or accessing global variables in the template. It should not work but if you figure out a way to hack it, it will just break your own vault.
 

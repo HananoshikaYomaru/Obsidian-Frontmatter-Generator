@@ -10,13 +10,29 @@ const primativeSchema = z
 	.or(z.date())
 	.or(z.undefined())
 	.or(z.null());
-const schema = z.array(primativeSchema).or(primativeSchema);
-type Schema = z.infer<typeof schema>;
+
+const recursivePrmitiveSchema: z.ZodType<any> = z.lazy(() =>
+	z.record(
+		z.union([
+			primativeSchema,
+			recursivePrmitiveSchema,
+			z.array(
+				primativeSchema
+					.or(recursivePrmitiveSchema)
+					.or(z.array(primativeSchema))
+			),
+		])
+	)
+);
+
+type Schema = z.infer<typeof recursivePrmitiveSchema>;
+
+export type SanitizedObject = { [key: string]: Schema };
 
 export function evalFromExpression(
 	expression: string,
 	context: {
-		file: TFile;
+		[x: string]: any;
 	}
 ):
 	| {
@@ -26,7 +42,7 @@ export function evalFromExpression(
 				message: string;
 			};
 	  }
-	| { success: true; object: { [key: string]: Schema } } {
+	| { success: true; object: SanitizedObject } {
 	try {
 		const object = safeEval(expression, context);
 		if (typeof object !== "object") {
@@ -38,11 +54,10 @@ export function evalFromExpression(
 				},
 			} as const;
 		}
-		const sanitizedObject: { [key: string]: Schema } = {};
 		// for each value in object, make sure it pass the schema, if not, assign error message to the key in sanitizedObject
-		for (const [key, value] of Object.entries(object)) {
-			sanitizedObject[key] = schema.parse(value);
-		}
+		const sanitizedObject: SanitizedObject =
+			recursivePrmitiveSchema.parse(object);
+
 		return {
 			success: true,
 			object: sanitizedObject,
@@ -57,3 +72,5 @@ export function evalFromExpression(
 		};
 	}
 }
+
+export type EvalResult = ReturnType<typeof evalFromExpression>;

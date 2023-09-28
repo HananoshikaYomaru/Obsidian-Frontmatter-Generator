@@ -1,5 +1,6 @@
 import {
 	App,
+	Editor,
 	EventRef,
 	MarkdownView,
 	Notice,
@@ -10,17 +11,27 @@ import {
 	stringifyYaml,
 } from "obsidian";
 import "@total-typescript/ts-reset";
-import { evalFromExpression } from "./evalFromExpression";
+import {
+	SanitizedObject,
+	evalFromExpression,
+} from "@/utils/evalFromExpression";
 import { getYAMLText, initYAML } from "./utils/yaml";
 import { deepInclude } from "./utils/deepInclude";
-import { writeFile } from "./writeFile";
-import { stripCr } from "./utils/strings";
+import { writeFile } from "./utils/obsidian";
 import { ConfirmationModal } from "./ui/modals/confirmationModal";
 import { SettingTab } from "./ui/SettingTab";
 import {
 	FrontmatterGeneratorPluginSettings,
 	DEFAULT_SETTINGS,
 } from "./FrontmatterGeneratorPluginSettings";
+import {
+	Data,
+	getAllFilesInFolder,
+	getDataFromFile,
+	getDataFromTextSync,
+	isMarkdownFile,
+} from "./utils/obsidian";
+import { getAPI, DataviewApi } from "obsidian-dataview";
 
 const userClickTimeout = 5000;
 
@@ -28,35 +39,116 @@ enum YamlKey {
 	IGNORE = "yaml-gen-ignore",
 }
 
+const isIgnoredByFolder = (
+	settings: FrontmatterGeneratorPluginSettings,
+	file: TFile
+) => {
+	return settings.internal.ignoredFolders.includes(
+		file.parent?.path as string
+	);
+};
+
+function shouldIgnoreFile(
+	settings: FrontmatterGeneratorPluginSettings,
+	file: TFile,
+	data?: Data
+) {
+	// if file path is in ignoredFolders, return true
+	if (isIgnoredByFolder(settings, file)) return true;
+
+	// check if there is a yaml ignore key
+	if (data) {
+		// create the yaml section if there is not one
+		const newText = initYAML(data.text);
+		// get the text inside the yaml section, it must be a string
+		const yaml = getYAMLText(newText) as string;
+
+		// get the yaml object from the yaml text
+		const yamlObj = parseYaml(yaml) as {
+			[x: string]: any;
+		} | null;
+		// if the YAML has the ignore key
+		if (yamlObj && yamlObj[YamlKey.IGNORE]) return true;
+	}
+
+	return false;
+}
+
+function createNotice(
+	message: string,
+	color: "white" | "yellow" | "red" = "white"
+) {
+	const fragment = new DocumentFragment();
+	const desc = document.createElement("div");
+	desc.innerHTML = `Obsidian Frontmatter Generator: ${message}`;
+	desc.style.color = color;
+	fragment.appendChild(desc);
+
+	new Notice(fragment);
+}
+
+function isObjectEmpty(obj: SanitizedObject) {
+	return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+}
+
+/**
+ *
+ * @param settings
+ * @param file
+ * @param data
+ * @returns if there is no change, return undefined, else return the new text
+ */
+function getNewTextFromFile(
+	settings: FrontmatterGeneratorPluginSettings,
+	file: TFile,
+	data: Data,
+	dv?: DataviewApi
+) {
+	if (shouldIgnoreFile(settings, file, data)) return;
+	const result = evalFromExpression(settings.template, {
+		file: {
+			...file,
+			properties: data.yamlObj,
+		},
+		dv,
+	});
+
+	if (!result.success) {
+		createNotice("Invalid template", "red");
+		return;
+	}
+	// if there is no object, or the object is empty, do nothing
+	if (isObjectEmpty(result.object)) return;
+
+	// check the yaml object, if the yaml object includes all keys of the result object
+	// and the corresponding values are the same, do nothing
+	if (data.yamlObj && deepInclude(data.yamlObj, result.object)) return;
+
+	// now you have the yaml object, combine it with the result object
+	// combine them
+	const yamlObj = {
+		...(data.yamlObj ?? {}),
+		...result.object,
+	};
+	Object.assign(yamlObj, result.object);
+	// set the yaml section
+	const yamlText = stringifyYaml(yamlObj);
+
+	// if old string and new string are the same, do nothing
+	const newText = `---\n${yamlText}---\n\n${data.body.trim()}`;
+	if (newText === data.text) {
+		createNotice("No changes made", "yellow");
+		return;
+	}
+
+	return newText;
+}
+
 export default class FrontmatterGeneratorPlugin extends Plugin {
 	settings: FrontmatterGeneratorPluginSettings;
 	private eventRefs: EventRef[] = [];
 	private previousSaveCommand: () => void;
-
-	shouldIgnoreFile(file: TFile, oldText?: string) {
-		// if file path is in ignoredFolders, return true
-
-		if (
-			this.settings.internal.ignoredFolders.includes(
-				file.parent?.path as string
-			)
-		)
-			return true;
-
-		if (oldText) {
-			const newText = initYAML(oldText);
-			// now there must be a YAML section
-			const yaml = getYAMLText(newText) as string;
-
-			const oldYamlObj = parseYaml(yaml) as {
-				[x: string]: any;
-			} | null;
-			// if the YAML has the ignore key
-			if (oldYamlObj && oldYamlObj[YamlKey.IGNORE]) return true;
-		}
-
-		return false;
-	}
+	private dv: DataviewApi | undefined;
 
 	addCommands() {
 		const that = this;
@@ -66,9 +158,9 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			editorCheckCallback(checking, editor, ctx) {
 				if (!ctx.file) return;
 				if (checking) {
-					return that.isMarkdownFile(ctx.file);
+					return isMarkdownFile(ctx.file);
 				}
-				that.runFile(ctx.file);
+				that.runFileSync(ctx.file, editor);
 			},
 		});
 		this.addCommand({
@@ -117,123 +209,16 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			startMessage,
 			submitBtnText,
 			submitBtnNoticeText,
-			() => this.runRunerAllFilesInFolder(folder)
+			() => this.runAllFilesInFolder(folder)
 		).open();
-	}
-
-	registerEventsAndSaveCallback() {
-		const saveCommandDefinition =
-			this.app.commands.commands["editor:save-file"];
-		this.previousSaveCommand = saveCommandDefinition.callback;
-
-		if (typeof this.previousSaveCommand === "function") {
-			const myAction = () => {
-				// get the tags of the current file
-				const editor =
-					this.app.workspace.getActiveViewOfType(
-						MarkdownView
-					)?.editor;
-				const file = this.app.workspace.getActiveFile();
-
-				if (!editor || !file) return;
-
-				const oldText = editor.getValue();
-
-				if (this.shouldIgnoreFile(file, oldText)) return;
-
-				const mustHaveYaml = initYAML(oldText);
-				// now there must be a YAML section
-				const yaml = getYAMLText(mustHaveYaml) as string;
-
-				const oldYamlObj = parseYaml(yaml) as {
-					[x: string]: any;
-				} | null;
-
-				// set the frontmatter
-				const result = evalFromExpression(this.settings.template, {
-					file,
-				});
-
-				if (!result.success) {
-					const fragment = new DocumentFragment();
-					const desc = document.createElement("div");
-					desc.innerHTML =
-						"Obsidian Frontmatter Generator: Invalid template";
-					desc.style.color = "red";
-					fragment.appendChild(desc);
-
-					new Notice(fragment);
-					return;
-				}
-
-				// if there is no object, or the object is empty, do nothing
-				if (
-					!result.object ||
-					typeof result.object !== "object" ||
-					Object.keys(result.object).length === 0
-				)
-					return;
-
-				// check the yaml object, if the yaml object includes all keys of the result object
-				// and the corresponding values are the same, do nothing
-				if (yaml && deepInclude(oldYamlObj, result.object)) return;
-
-				// now you have the yaml object, combine it with the result object
-				// combine them
-				const yamlObj = {
-					...(oldYamlObj ?? {}),
-					...result.object,
-				};
-				Object.assign(yamlObj, result.object);
-
-				// set the yaml section
-				const yamlText = stringifyYaml(yamlObj);
-
-				// replace the yaml section
-				if (yaml) {
-					const parts = oldText.split(/^---$/m);
-					writeFile(
-						editor,
-						oldText,
-						`---\n${yamlText}---\n\n${parts[2]!.trim()}`
-					);
-				} else {
-					writeFile(
-						editor,
-						oldText,
-						`---\n${yamlText}---\n\n${oldText}`
-					);
-				}
-			};
-			saveCommandDefinition.callback = () => {
-				myAction();
-
-				// run the previous save command
-				this.previousSaveCommand();
-
-				// defines the vim command for saving a file and lets the linter run on save for it
-				// accounts for https://github.com/platers/obsidian-linter/issues/19
-				const that = this;
-				window.CodeMirrorAdapter.commands.save = () => {
-					that.app.commands.executeCommandById("editor:save-file");
-				};
-			};
-		}
-	}
-
-	unregisterEventsAndSaveCallback() {
-		const saveCommandDefinition =
-			this.app.commands.commands["editor:save-file"];
-		saveCommandDefinition.callback = this.previousSaveCommand;
 	}
 
 	async onload() {
 		await this.loadSettings();
+		this.dv = getAPI(this.app);
 		this.registerEventsAndSaveCallback();
-
-		// TODO: create a command that generate frontmatter on the whole vault
+		// create a command that generate frontmatter on the whole vault
 		this.addCommands();
-
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SettingTab(this.app, this));
 	}
@@ -257,54 +242,57 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	async runFile(file: TFile, _oldText?: string) {
-		if (this.shouldIgnoreFile(file, _oldText)) return;
-		const oldText = _oldText ?? stripCr(await this.app.vault.read(file));
-		const result = evalFromExpression(this.settings.template, {
-			file,
-		});
-		if (!result.success) {
-			throw result.error.cause;
+	runFileSync(file: TFile, editor: Editor) {
+		const data = getDataFromTextSync(editor.getValue());
+		const newText = getNewTextFromFile(this.settings, file, data, this.dv);
+		if (newText) {
+			writeFile(editor, data.text, newText);
 		}
-		const mustHaveYaml = initYAML(oldText);
-		// now there must be a YAML section
-		const yaml = getYAMLText(mustHaveYaml) as string;
-		const oldYamlObj = parseYaml(yaml) as {
-			[x: string]: any;
-		} | null;
-		// if there is no object, or the object is empty, do nothing
-		if (
-			!result.object ||
-			typeof result.object !== "object" ||
-			Object.keys(result.object).length === 0
-		)
-			return;
+	}
 
-		// check the yaml object, if the yaml object includes all keys of the result object
-		// and the corresponding values are the same, do nothing
-		if (yaml && deepInclude(oldYamlObj, result.object)) return;
+	async runFile(file: TFile) {
+		const data = await getDataFromFile(this, file);
 
-		// now you have the yaml object, combine it with the result object
-		// combine them
-		const yamlObj = {
-			...(oldYamlObj ?? {}),
-			...result.object,
-		};
-		Object.assign(yamlObj, result.object);
+		// from the frontmatter template and the file, generate some new properties
+		const newText = getNewTextFromFile(this.settings, file, data, this.dv);
+		// replace the yaml section
+		if (newText) await this.app.vault.modify(file, newText);
+	}
 
-		// set the yaml section
-		const yamlText = stringifyYaml(yamlObj);
-		let newText = "";
-		// if the yaml exist, replace the yaml section. otherwise, add the yaml section
-		if (yaml) {
-			const parts = oldText.split(/^---$/m);
-			newText = `---\n${yamlText}---\n\n${parts[2]!.trim()}`;
-		} else {
-			newText = `---\n${yamlText}---\n\n${oldText}`;
+	registerEventsAndSaveCallback() {
+		const saveCommandDefinition =
+			this.app.commands.commands["editor:save-file"];
+		this.previousSaveCommand = saveCommandDefinition.callback;
+
+		if (typeof this.previousSaveCommand === "function") {
+			saveCommandDefinition.callback = async () => {
+				// get the editor and file
+				const editor =
+					this.app.workspace.getActiveViewOfType(
+						MarkdownView
+					)?.editor;
+				const file = this.app.workspace.getActiveFile();
+				if (!editor || !file) return;
+				// this cannot be awaited because it will cause the editor to delay saving
+				this.runFileSync(file, editor);
+
+				// run the previous save command
+				this.previousSaveCommand();
+
+				// defines the vim command for saving a file and lets the linter run on save for it
+				// accounts for https://github.com/platers/obsidian-linter/issues/19
+				const that = this;
+				window.CodeMirrorAdapter.commands.save = () => {
+					that.app.commands.executeCommandById("editor:save-file");
+				};
+			};
 		}
-		if (oldText !== newText) {
-			await this.app.vault.modify(file, newText);
-		}
+	}
+
+	unregisterEventsAndSaveCallback() {
+		const saveCommandDefinition =
+			this.app.commands.commands["editor:save-file"];
+		saveCommandDefinition.callback = this.previousSaveCommand;
 	}
 
 	async runAllFiles(app: App) {
@@ -312,8 +300,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		let lintedFiles = 0;
 		await Promise.all(
 			app.vault.getMarkdownFiles().map(async (file) => {
-				const oldText = stripCr(await this.app.vault.read(file));
-				if (!this.shouldIgnoreFile(file, oldText)) {
+				if (!shouldIgnoreFile(this.settings, file)) {
 					try {
 						await this.runFile(file);
 					} catch (e) {
@@ -337,36 +324,15 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		}
 	}
 
-	private getAllFilesInFolder(startingFolder: TFolder): TFile[] {
-		const filesInFolder = [] as TFile[];
-		const foldersToIterateOver = [startingFolder] as TFolder[];
-		for (const folder of foldersToIterateOver) {
-			for (const child of folder.children) {
-				if (child instanceof TFile && this.isMarkdownFile(child)) {
-					filesInFolder.push(child);
-				} else if (child instanceof TFolder) {
-					foldersToIterateOver.push(child);
-				}
-			}
-		}
-
-		return filesInFolder;
-	}
-
-	isMarkdownFile(file: TFile): boolean {
-		return file && file.extension === "md";
-	}
-
-	async runRunerAllFilesInFolder(folder: TFolder) {
+	async runAllFilesInFolder(folder: TFolder) {
 		let numberOfErrors = 0;
 		let lintedFiles = 0;
-		const filesInFolder = this.getAllFilesInFolder(folder);
+		const filesInFolder = getAllFilesInFolder(folder);
 		await Promise.all(
 			filesInFolder.map(async (file) => {
-				const oldText = stripCr(await this.app.vault.read(file));
-				if (!this.shouldIgnoreFile(file, oldText)) {
+				if (!shouldIgnoreFile(this.settings, file)) {
 					try {
-						await this.runFile(file, oldText);
+						await this.runFile(file);
 					} catch (e) {
 						numberOfErrors += 1;
 					}

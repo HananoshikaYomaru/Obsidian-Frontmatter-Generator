@@ -1,6 +1,9 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import FrontmatterGeneratorPlugin from "../main";
-import { setRealTimePreview } from "../setRealTimePreview";
+import { setRealTimePreview } from "../utils/setRealTimePreview";
+import { evalFromExpression } from "../utils/evalFromExpression";
+import { getDataFromFile } from "src/utils/obsidian";
+import { getAPI } from "obsidian-dataview";
 
 export class SettingTab extends PluginSettingTab {
 	plugin: FrontmatterGeneratorPlugin;
@@ -27,12 +30,15 @@ export class SettingTab extends PluginSettingTab {
 		return filesInFolder[0] ?? filesInRoot[0];
 	}
 
-	display(): void {
+	async display(): Promise<void> {
 		const { containerEl } = this;
 
 		containerEl.empty();
 
 		const sampleFile = this.getSampleFile();
+		const data = sampleFile
+			? await getDataFromFile(this.plugin, sampleFile)
+			: undefined;
 		const fragment = new DocumentFragment();
 		const desc = document.createElement("div");
 		desc.innerHTML = [
@@ -63,11 +69,17 @@ export class SettingTab extends PluginSettingTab {
 				realTimePreview.style.color = "white";
 
 				if (sampleFile) {
-					setRealTimePreview(
-						realTimePreview,
+					const context = {
+						file: {
+							...sampleFile,
+							properties: data?.yamlObj,
+						},
+					};
+					const result = evalFromExpression(
 						this.plugin.settings.template,
-						sampleFile
+						context
 					);
+					setRealTimePreview(realTimePreview, result, context);
 				}
 				text.setPlaceholder("Enter your template")
 					.setValue(this.plugin.settings.template)
@@ -77,11 +89,18 @@ export class SettingTab extends PluginSettingTab {
 
 						if (!sampleFile) return;
 						// try to update the real time preview
-						setRealTimePreview(
-							realTimePreview,
+						const context = {
+							file: {
+								...sampleFile,
+								properties: data?.yamlObj,
+							},
+							dv: getAPI(this.app),
+						};
+						const result = evalFromExpression(
 							this.plugin.settings.template,
-							sampleFile
+							context
 						);
+						setRealTimePreview(realTimePreview, result, context);
 					});
 				text.inputEl.style.minWidth = text.inputEl.style.maxWidth =
 					"300px";

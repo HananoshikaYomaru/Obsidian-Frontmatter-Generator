@@ -85,21 +85,6 @@ export function removeYamlSection(yaml: string, rawKey: string): string {
 	return result;
 }
 
-export function loadYAML(yaml_text: string): any {
-	if (yaml_text == null) {
-		return null;
-	}
-
-	// replacing tabs at the beginning of new lines with 2 spaces fixes loading YAML that has tabs at the start of a line
-	// https://github.com/platers/obsidian-linter/issues/157
-	const parsed_yaml = load(yaml_text.replace(/\n(\t)+/g, "\n  ")) as {};
-	if (parsed_yaml == null) {
-		return {};
-	}
-
-	return parsed_yaml;
-}
-
 export enum TagSpecificArrayFormats {
 	SingleStringSpaceDelimited = "single string space delimited",
 	SingleLineSpaceDelimited = "single-line space delimited",
@@ -496,3 +481,23 @@ function basicEscapeString(
 	// the line must have a colon with a space
 	return `${defaultEscapeCharacter}${value}${defaultEscapeCharacter}`;
 }
+
+export const splitYamlAndBody = (markdown: string) => {
+	const parts = markdown.split(/^---$/m);
+	if (parts.length === 1) {
+		return {
+			yaml: undefined,
+			body: markdown,
+		};
+	}
+	if (parts.length < 3) {
+		return {
+			yaml: parts[1] as string,
+			body: parts[2] ?? "",
+		};
+	}
+	return {
+		yaml: parts[1],
+		body: parts.slice(2).join("---"),
+	};
+};
