@@ -74,6 +74,7 @@ export class SettingTab extends PluginSettingTab {
 							...sampleFile,
 							properties: data?.yamlObj,
 						},
+						dv: getAPI(this.app),
 					};
 					const result = evalFromExpression(
 						this.plugin.settings.template,
