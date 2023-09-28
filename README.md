@@ -54,6 +54,14 @@ file.properties?.type === "kanban"
 }
 ```
 
+### Dataview
+
+```ts
+{
+	numberOfPages: dv.pages("#ai").length;
+}
+```
+
 ## Syntax of the frontmatter template
 
 It could be a json or a javascript expression that return an object.
