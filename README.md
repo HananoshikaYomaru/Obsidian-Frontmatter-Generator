@@ -76,9 +76,9 @@ It could be a json or a javascript expression that return an object.
 
 ## Variable that it can access
 
--   [`TFile`](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile)
+-   `file`, the [`TFile`](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile) object
 -   `file.properties` will access the yaml object of the current file
--   `dv`, the [dataview](https://blacksmithgu.github.io/obsidian-dataview/) object
+-   `dv`, the [dataview](https://blacksmithgu.github.io/obsidian-dataview/) object (you can only access this if you install and enable the dataview plugin)
 
 ## Installation
 
