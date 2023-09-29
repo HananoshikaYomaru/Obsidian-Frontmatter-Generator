@@ -82,11 +82,11 @@ It could be a json or a javascript expression that return an object.
 
 ## Installation
 
-## Install on obsidian plugin marketplace
+### Install on obsidian plugin marketplace
 
-⏳ Still waiting for review and approval:
+⏳ Still waiting for review and approval: https://github.com/obsidianmd/obsidian-releases/pull/2502
 
-## Manual Install
+### Manual Install
 
 1. cd to `.obsidian/plugins`
 2. git clone this repo
