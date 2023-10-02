@@ -1,8 +1,8 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, TFile } from "obsidian";
 import FrontmatterGeneratorPlugin from "../main";
 import { setRealTimePreview } from "../utils/setRealTimePreview";
 import { evalFromExpression } from "../utils/evalFromExpression";
-import { getDataFromFile } from "src/utils/obsidian";
+import { Data, getDataFromFile } from "src/utils/obsidian";
 import { getAPI } from "obsidian-dataview";
 
 export class SettingTab extends PluginSettingTab {
@@ -11,6 +11,25 @@ export class SettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: FrontmatterGeneratorPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	updatePreview(
+		file: TFile,
+		data: Data | undefined,
+		realTimePreviewElement: HTMLElement
+	) {
+		const context = {
+			file: {
+				...file,
+				properties: data?.yamlObj,
+			},
+			dv: getAPI(this.app),
+		};
+		const result = evalFromExpression(
+			this.plugin.settings.template,
+			context
+		);
+		setRealTimePreview(realTimePreviewElement, result, context);
 	}
 
 	getSampleFile() {
@@ -69,18 +88,7 @@ export class SettingTab extends PluginSettingTab {
 				realTimePreview.style.color = "white";
 
 				if (sampleFile) {
-					const context = {
-						file: {
-							...sampleFile,
-							properties: data?.yamlObj,
-						},
-						dv: getAPI(this.app),
-					};
-					const result = evalFromExpression(
-						this.plugin.settings.template,
-						context
-					);
-					setRealTimePreview(realTimePreview, result, context);
+					this.updatePreview(sampleFile, data, realTimePreview);
 				}
 				text.setPlaceholder("Enter your template")
 					.setValue(this.plugin.settings.template)
@@ -90,18 +98,7 @@ export class SettingTab extends PluginSettingTab {
 
 						if (!sampleFile) return;
 						// try to update the real time preview
-						const context = {
-							file: {
-								...sampleFile,
-								properties: data?.yamlObj,
-							},
-							dv: getAPI(this.app),
-						};
-						const result = evalFromExpression(
-							this.plugin.settings.template,
-							context
-						);
-						setRealTimePreview(realTimePreview, result, context);
+						this.updatePreview(sampleFile, data, realTimePreview);
 					});
 				text.inputEl.style.minWidth = text.inputEl.style.maxWidth =
 					"300px";

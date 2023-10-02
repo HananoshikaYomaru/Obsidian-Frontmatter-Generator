@@ -7,7 +7,6 @@ import {
 	Plugin,
 	TFile,
 	TFolder,
-	parseYaml,
 	stringifyYaml,
 } from "obsidian";
 import "@total-typescript/ts-reset";
@@ -15,7 +14,6 @@ import {
 	SanitizedObject,
 	evalFromExpression,
 } from "@/utils/evalFromExpression";
-import { getYAMLText, initYAML } from "./utils/yaml";
 import { deepInclude } from "./utils/deepInclude";
 import { writeFile } from "./utils/obsidian";
 import { ConfirmationModal } from "./ui/modals/confirmationModal";
@@ -58,17 +56,7 @@ function shouldIgnoreFile(
 
 	// check if there is a yaml ignore key
 	if (data) {
-		// create the yaml section if there is not one
-		const newText = initYAML(data.text);
-		// get the text inside the yaml section, it must be a string
-		const yaml = getYAMLText(newText) as string;
-
-		// get the yaml object from the yaml text
-		const yamlObj = parseYaml(yaml) as {
-			[x: string]: any;
-		} | null;
-		// if the YAML has the ignore key
-		if (yamlObj && yamlObj[YamlKey.IGNORE]) return true;
+		if (data.yamlObj && data.yamlObj[YamlKey.IGNORE]) return true;
 	}
 
 	return false;
@@ -99,13 +87,12 @@ function isObjectEmpty(obj: SanitizedObject) {
  * @returns if there is no change, return undefined, else return the new text
  */
 function getNewTextFromFile(
-	settings: FrontmatterGeneratorPluginSettings,
+	template: string,
 	file: TFile,
 	data: Data,
 	dv?: DataviewApi
 ) {
-	if (shouldIgnoreFile(settings, file, data)) return;
-	const result = evalFromExpression(settings.template, {
+	const result = evalFromExpression(template, {
 		file: {
 			...file,
 			properties: data.yamlObj,
@@ -148,7 +135,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	settings: FrontmatterGeneratorPluginSettings;
 	private eventRefs: EventRef[] = [];
 	private previousSaveCommand: () => void;
-	private dv: DataviewApi | undefined;
 
 	addCommands() {
 		const that = this;
@@ -215,7 +201,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		this.dv = getAPI(this.app);
 		this.registerEventsAndSaveCallback();
 		// create a command that generate frontmatter on the whole vault
 		this.addCommands();
@@ -242,9 +227,21 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+	/**
+	 * 1. check the file is ignored
+	 * 2.
+	 * @param file
+	 * @param editor
+	 */
 	runFileSync(file: TFile, editor: Editor) {
 		const data = getDataFromTextSync(editor.getValue());
-		const newText = getNewTextFromFile(this.settings, file, data, this.dv);
+		if (shouldIgnoreFile(this.settings, file, data)) return;
+		const newText = getNewTextFromFile(
+			this.settings.template,
+			file,
+			data,
+			getAPI(this.app)
+		);
 		if (newText) {
 			writeFile(editor, data.text, newText);
 		}
@@ -252,9 +249,15 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 	async runFile(file: TFile) {
 		const data = await getDataFromFile(this, file);
+		if (shouldIgnoreFile(this.settings, file, data)) return;
 
 		// from the frontmatter template and the file, generate some new properties
-		const newText = getNewTextFromFile(this.settings, file, data, this.dv);
+		const newText = getNewTextFromFile(
+			this.settings.template,
+			file,
+			data,
+			getAPI(this.app)
+		);
 		// replace the yaml section
 		if (newText) await this.app.vault.modify(file, newText);
 	}

@@ -1,5 +1,4 @@
-import { TFile } from "obsidian";
-import safeEval from "safe-eval";
+import dedent from "ts-dedent";
 import { z } from "zod";
 
 const primativeSchema = z
@@ -44,7 +43,16 @@ export function evalFromExpression(
 	  }
 	| { success: true; object: SanitizedObject } {
 	try {
-		const object = safeEval(expression, context);
+		const object = new Function(
+			...Object.keys(context).sort(),
+			dedent`
+			return ${expression}
+		    `
+		)(
+			...Object.keys(context)
+				.sort()
+				.map((key) => context[key])
+		);
 		if (typeof object !== "object") {
 			return {
 				success: false,
