@@ -24,3 +24,6 @@ data.json
 obsidian-dataview.d.ts
 
 dist
+test.ts
+test.js
+test/

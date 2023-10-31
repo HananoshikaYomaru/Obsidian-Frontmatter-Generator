@@ -4,7 +4,7 @@ import { setRealTimePreview } from "../utils/setRealTimePreview";
 import { evalFromExpression } from "../utils/evalFromExpression";
 import { Data, getDataFromFile } from "src/utils/obsidian";
 import { getAPI } from "obsidian-dataview";
-import dedent from "ts-dedent";
+import { z } from "zod";
 
 export class SettingTab extends PluginSettingTab {
 	plugin: FrontmatterGeneratorPlugin;
@@ -25,6 +25,7 @@ export class SettingTab extends PluginSettingTab {
 				properties: data?.yamlObj,
 			},
 			dv: getAPI(this.app),
+			z,
 		};
 		const result = evalFromExpression(
 			this.plugin.settings.template,
