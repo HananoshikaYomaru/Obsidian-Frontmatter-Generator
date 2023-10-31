@@ -31,6 +31,7 @@ import {
 } from "./utils/obsidian";
 import { getAPI, DataviewApi } from "obsidian-dataview";
 import { deepRemoveNull } from "./utils/deepRemoveNull";
+import { z } from "zod";
 
 const userClickTimeout = 5000;
 
@@ -99,6 +100,7 @@ function getNewTextFromFile(
 			properties: data.yamlObj,
 		},
 		dv,
+		z,
 	});
 
 	if (!result.success) {
