@@ -13,9 +13,9 @@ for example, the following frontmatter template
 
 ```ts
 {
-	folder: file.parent.path;
-	title: file.basename;
-	test: ["1", "2"];
+ folder: file.parent.path;
+ title: file.basename;
+ test: ["1", "2"];
 }
 ```
 
@@ -29,7 +29,7 @@ test:
     - "2"
 ```
 
-Demo: https://youtu.be/Cz9d5e1WQVM
+Demo: <https://youtu.be/Cz9d5e1WQVM>
 
 ## Advanced usage
 
@@ -37,20 +37,20 @@ Demo: https://youtu.be/Cz9d5e1WQVM
 
 ```ts
 file.properties?.type === "kanban"
-	? {
-			folder: file.parent.path,
-			title: file.basename,
-	  }
-	: {};
+ ? {
+   folder: file.parent.path,
+   title: file.basename,
+   }
+ : {};
 ```
 
 ### function
 
 ```ts
 {
-	test: (() => {
-		return { test: "test" };
-	})();
+ test: (() => {
+  return { test: "test" };
+ })();
 }
 ```
 
@@ -58,7 +58,7 @@ file.properties?.type === "kanban"
 
 ```ts
 {
-	numberOfPages: dv.pages("#ai").length;
+ numberOfPages: dv.pages("#ai").length;
 }
 ```
 
@@ -70,21 +70,17 @@ It could be a json or a javascript expression that return an object.
 
 <small>^ even functions work</small>
 
-![](https://share.cleanshot.com/2bH8BXRg+)
-
-<small>^ async function doesn't work</small>
-
 ## Variable that it can access
 
--   `file`, the [`TFile`](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile) object
--   `file.properties` will access the yaml object of the current file
--   `dv`, the [dataview](https://blacksmithgu.github.io/obsidian-dataview/) object (you can only access this if you install and enable the dataview plugin)
+- `file`, the [`TFile`](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile) object
+- `file.properties` will access the yaml object of the current file
+- `dv`, the [dataview](https://blacksmithgu.github.io/obsidian-dataview/) object (you can only access this if you install and enable the dataview plugin)
 
 ## Installation
 
 ### Install on obsidian plugin marketplace
 
-⏳ Still waiting for review and approval: https://github.com/obsidianmd/obsidian-releases/pull/2502
+⏳ Still waiting for review and approval: <https://github.com/obsidianmd/obsidian-releases/pull/2502>
 
 ### Manual Install
 
