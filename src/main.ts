@@ -138,6 +138,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 	addCommands() {
 		const that = this;
+
 		this.addCommand({
 			id: "run-file",
 			name: "run file",
@@ -267,6 +268,39 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			this.app.commands.commands["editor:save-file"];
 		this.previousSaveCommand = saveCommandDefinition.callback;
 
+		const eventRef = this.app.workspace.on(
+			"file-menu",
+			async (menu, file) => {
+				if (file instanceof TFile && isMarkdownFile(file)) {
+					menu.addItem((item) => {
+						item.setTitle(
+							"Generate frontmatter for this file"
+						).onClick(async () => {
+							const activeFile =
+								this.app.workspace.getActiveFile();
+							const editor =
+								this.app.workspace.getActiveViewOfType(
+									MarkdownView
+								)?.editor;
+							if (activeFile === file && editor) {
+								this.runFileSync(file, editor);
+							} else {
+								await this.runFile(file);
+							}
+						});
+					});
+				} else if (file instanceof TFolder) {
+					menu.addItem((item) => {
+						item.setTitle(
+							"Generate frontmatter in this folder"
+						).onClick(() => this.runAllFilesInFolder(file));
+					});
+				}
+			}
+		);
+		this.registerEvent(eventRef);
+		this.eventRefs.push(eventRef);
+
 		if (typeof this.previousSaveCommand === "function") {
 			saveCommandDefinition.callback = async () => {
 				// get the editor and file
@@ -293,6 +327,9 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	}
 
 	unregisterEventsAndSaveCallback() {
+		for (const eventRef of this.eventRefs) {
+			this.app.workspace.offref(eventRef);
+		}
 		const saveCommandDefinition =
 			this.app.commands.commands["editor:save-file"];
 		saveCommandDefinition.callback = this.previousSaveCommand;
