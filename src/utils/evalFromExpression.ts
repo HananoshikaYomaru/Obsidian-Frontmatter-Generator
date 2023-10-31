@@ -28,6 +28,9 @@ type Schema = z.infer<typeof recursivePrmitiveSchema>;
 
 export type SanitizedObject = { [key: string]: Schema };
 
+/**
+ * given an expression and context, evaluate the expression and return the object
+ */
 export function evalFromExpression(
 	expression: string,
 	context: {

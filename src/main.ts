@@ -30,6 +30,7 @@ import {
 	isMarkdownFile,
 } from "./utils/obsidian";
 import { getAPI, DataviewApi } from "obsidian-dataview";
+import { deepRemoveNull } from "./utils/deepRemoveNull";
 
 const userClickTimeout = 5000;
 
@@ -109,7 +110,9 @@ function getNewTextFromFile(
 
 	// check the yaml object, if the yaml object includes all keys of the result object
 	// and the corresponding values are the same, do nothing
-	if (data.yamlObj && deepInclude(data.yamlObj, result.object)) return;
+	if (data.yamlObj && deepInclude(data.yamlObj, result.object)) {
+		return;
+	}
 
 	// now you have the yaml object, combine it with the result object
 	// combine them
@@ -117,9 +120,13 @@ function getNewTextFromFile(
 		...(data.yamlObj ?? {}),
 		...result.object,
 	};
+
 	Object.assign(yamlObj, result.object);
+
 	// set the yaml section
-	const yamlText = stringifyYaml(yamlObj);
+	const yamlText = stringifyYaml(
+		deepRemoveNull<SanitizedObject>(yamlObj, result.object)
+	);
 
 	// if old string and new string are the same, do nothing
 	const newText = `---\n${yamlText}---\n\n${data.body.trim()}`;
