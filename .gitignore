@@ -22,3 +22,5 @@ data.json
 .DS_Store
 
 obsidian-dataview.d.ts
+
+dist
