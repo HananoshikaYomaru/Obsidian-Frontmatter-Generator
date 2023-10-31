@@ -70,7 +70,7 @@ function createNotice(
 ) {
 	const fragment = new DocumentFragment();
 	const desc = document.createElement("div");
-	desc.innerHTML = `Obsidian Frontmatter Generator: ${message}`;
+	desc.setText(`Obsidian Frontmatter Generator: ${message}`);
 	desc.style.color = color;
 	fragment.appendChild(desc);
 

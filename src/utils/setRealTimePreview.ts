@@ -11,12 +11,12 @@ export const setRealTimePreview = (
 		console.error(result.error.cause);
 		// this is needed so that it is easier to debug
 		if (context) console.log(context);
-		element.innerHTML = result.error.message;
+		element.setText(result.error.message);
 		element.style.color = "red";
 	} else {
 		// there is object
 		// set the real time preview
-		element.innerHTML = JSON.stringify(result.object, null, 2);
+		element.setText(JSON.stringify(result.object, null, 2));
 		element.style.color = "white";
 	}
 };

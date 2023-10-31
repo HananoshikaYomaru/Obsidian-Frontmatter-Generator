@@ -4,6 +4,7 @@ import { setRealTimePreview } from "../utils/setRealTimePreview";
 import { evalFromExpression } from "../utils/evalFromExpression";
 import { Data, getDataFromFile } from "src/utils/obsidian";
 import { getAPI } from "obsidian-dataview";
+import dedent from "ts-dedent";
 
 export class SettingTab extends PluginSettingTab {
 	plugin: FrontmatterGeneratorPlugin;
@@ -58,34 +59,19 @@ export class SettingTab extends PluginSettingTab {
 		const data = sampleFile
 			? await getDataFromFile(this.plugin, sampleFile)
 			: undefined;
-		const fragment = new DocumentFragment();
-		const desc = document.createElement("div");
-		desc.innerHTML = [
-			`A map from a key to value.`,
-			`for example, the following frontmatter template will cause the file "${sampleFile?.path}" to have the following frontmatter:`,
-			"",
-			`folder: file.parent.path`,
-			"title: file.basename",
-			"",
-			"↓↓↓↓↓↓↓↓↓ generate ↓↓↓↓↓↓↓↓↓",
-			"",
-			`folder: ${sampleFile?.parent?.path}`,
-			`title: ${sampleFile?.basename}`,
-			``,
-			`Note: If you see error, it means that the template is not valid. Please check the console for more information.`,
-		].join("<br />");
+		// const fragment = new DocumentFragment();
+		// const desc = document.createElement("div");
 
-		fragment.appendChild(desc);
+		// fragment.appendChild(desc);
 
-		new Setting(containerEl)
-			.setName("Frontmatter Template")
-			.setDesc(fragment)
+		const templateSetting = new Setting(containerEl)
+			.setName("Frontmatter template")
+			// .setDesc(fragment)
 			.addTextArea((text) => {
 				const realTimePreview = document.createElement("pre");
-				realTimePreview.style.textAlign = "left";
-				realTimePreview.style.maxWidth = "300px";
-				realTimePreview.style.whiteSpace = "pre-wrap";
-				realTimePreview.style.color = "white";
+				realTimePreview.classList.add(
+					"frontmatter-generator-settings-real-time-preview"
+				);
 
 				if (sampleFile) {
 					this.updatePreview(sampleFile, data, realTimePreview);
@@ -100,35 +86,37 @@ export class SettingTab extends PluginSettingTab {
 						// try to update the real time preview
 						this.updatePreview(sampleFile, data, realTimePreview);
 					});
-				text.inputEl.style.minWidth = text.inputEl.style.maxWidth =
-					"300px";
-				text.inputEl.style.minHeight = "200px";
+				text.inputEl.addClass("frontmatter-generator-settings-input");
 
 				if (text.inputEl.parentElement) {
-					text.inputEl.parentElement.style.flexDirection = "column";
-					text.inputEl.parentElement.style.alignItems = "flex-start";
-					text.inputEl.parentElement.style.maxWidth = "300px";
+					text.inputEl.parentElement.addClass(
+						"frontmatter-generator-settings-input-outer"
+					);
 				}
 				text.inputEl.insertAdjacentElement("afterend", realTimePreview);
 				return text;
 			});
 
-		new Setting(containerEl)
+		templateSetting.setClass(
+			"frontmatter-generator-settings-template-setting"
+		);
+
+		const ignoredFoldersSetting = new Setting(containerEl)
 			.setName("Ignore folders")
 			.setDesc("Folders to ignore. One folder per line.")
 			.addTextArea((text) => {
 				const realTimePreview = document.createElement("pre");
-				realTimePreview.style.textAlign = "left";
-				realTimePreview.style.maxWidth = "300px";
-				realTimePreview.style.whiteSpace = "pre-wrap";
-				realTimePreview.style.color = "white";
-
-				realTimePreview.innerHTML = JSON.stringify(
-					this.plugin.settings.internal.ignoredFolders,
-					null,
-					2
+				realTimePreview.classList.add(
+					"frontmatter-generator-settings-real-time-preview"
 				);
-				realTimePreview.style.color = "white";
+
+				realTimePreview.setText(
+					JSON.stringify(
+						this.plugin.settings.internal.ignoredFolders,
+						null,
+						2
+					)
+				);
 				text.setPlaceholder("Enter folders to ignore")
 					.setValue(this.plugin.settings.folderToIgnore)
 					.onChange(async (value) => {
@@ -139,23 +127,27 @@ export class SettingTab extends PluginSettingTab {
 							.filter((folder) => folder !== "");
 						await this.plugin.saveSettings();
 						if (!sampleFile) return;
-						realTimePreview.innerHTML = JSON.stringify(
-							this.plugin.settings.internal.ignoredFolders,
-							null,
-							2
+						realTimePreview.setText(
+							JSON.stringify(
+								this.plugin.settings.internal.ignoredFolders,
+								null,
+								2
+							)
 						);
 					});
-				text.inputEl.style.minWidth = text.inputEl.style.maxWidth =
-					"300px";
-				text.inputEl.style.minHeight = "200px";
+				text.inputEl.addClass("frontmatter-generator-settings-input");
+
 				if (text.inputEl.parentElement) {
-					text.inputEl.parentElement.style.flexDirection = "column";
-					text.inputEl.parentElement.style.alignItems = "flex-start";
-					text.inputEl.parentElement.style.maxWidth = "300px";
+					text.inputEl.parentElement.addClass(
+						"frontmatter-generator-settings-input-outer"
+					);
 				}
 				text.inputEl.insertAdjacentElement("afterend", realTimePreview);
 
 				return text;
 			});
+		ignoredFoldersSetting.setClass(
+			"frontmatter-generator-settings-ignored-folders-setting"
+		);
 	}
 }

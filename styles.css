@@ -6,3 +6,27 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.frontmatter-generator-settings-real-time-preview {
+	text-align: left;
+	max-width: 300px;
+	white-space: pre-wrap;
+	color: white;
+}
+
+.frontmatter-generator-settings-input {
+	max-width: 300px;
+	min-width: 300px;
+	min-height: 200px;
+}
+
+.frontmatter-generator-settings-input-outer {
+	flex-direction: column;
+	align-items: flex-start;
+	max-width: 300px;
+}
+
+.setting-item.frontmatter-generator-settings-template-setting,
+.setting-item.frontmatter-generator-settings-ignored-folders-setting {
+	align-items: flex-start;
+}
