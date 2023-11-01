@@ -1,6 +1,6 @@
 {
   "name": "obsidian-frontmatter-generator",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "A plugin for Obsidian that generates frontmatter for notes.",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "prepare": "husky install",
     "release": "bash release.sh",
     "typecheck": "tsc -noEmit -skipLibCheck",
-    "lint": "eslint . --ext .ts --fix"
+    "lint": "eslint . --ext .ts --fix",
+    "test": "tsc src/test/test.ts -skipLibCheck"
   },
   "keywords": [
     "obsidian",

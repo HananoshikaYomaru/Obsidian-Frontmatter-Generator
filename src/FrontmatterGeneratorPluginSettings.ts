@@ -4,6 +4,7 @@ export interface FrontmatterGeneratorPluginSettings {
 	internal: {
 		ignoredFolders: string[];
 	};
+	sortYamlKey: boolean;
 }
 export const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
 	template: "{}",
@@ -11,4 +12,5 @@ export const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
 	internal: {
 		ignoredFolders: [],
 	},
+	sortYamlKey: true,
 };

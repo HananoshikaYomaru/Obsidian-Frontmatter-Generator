@@ -22,6 +22,7 @@ export class SettingTab extends PluginSettingTab {
 		const context = {
 			file: {
 				...file,
+				tags: this.app.metadataCache.getFileCache(file)?.tags ?? [],
 				properties: data?.yamlObj,
 			},
 			dv: getAPI(this.app),
@@ -63,11 +64,9 @@ export class SettingTab extends PluginSettingTab {
 		// const fragment = new DocumentFragment();
 		// const desc = document.createElement("div");
 
-		// fragment.appendChild(desc);
-
 		const templateSetting = new Setting(containerEl)
 			.setName("Frontmatter template")
-			// .setDesc(fragment)
+			.setDesc(`Current Demo file: ${sampleFile?.path}`)
 			.addTextArea((text) => {
 				const realTimePreview = document.createElement("pre");
 				realTimePreview.classList.add(
@@ -150,5 +149,16 @@ export class SettingTab extends PluginSettingTab {
 		ignoredFoldersSetting.setClass(
 			"frontmatter-generator-settings-ignored-folders-setting"
 		);
+
+		new Setting(containerEl)
+			.setName("Sort Yaml key")
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.sortYamlKey)
+					.onChange(async (value) => {
+						this.plugin.settings.sortYamlKey = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }

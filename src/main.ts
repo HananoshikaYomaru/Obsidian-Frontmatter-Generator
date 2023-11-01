@@ -92,11 +92,14 @@ function getNewTextFromFile(
 	template: string,
 	file: TFile,
 	data: Data,
-	dv?: DataviewApi
+	plugin: FrontmatterGeneratorPlugin
 ) {
+	const app = plugin.app;
+	const dv = getAPI(app);
 	const result = evalFromExpression(template, {
 		file: {
 			...file,
+			tags: app.metadataCache.getFileCache(file)?.tags ?? [],
 			properties: data.yamlObj,
 		},
 		dv,
@@ -105,6 +108,7 @@ function getNewTextFromFile(
 
 	if (!result.success) {
 		createNotice("Invalid template", "red");
+		console.error(result.error.cause);
 		return;
 	}
 	// if there is no object, or the object is empty, do nothing
@@ -125,9 +129,19 @@ function getNewTextFromFile(
 
 	Object.assign(yamlObj, result.object);
 
+	// remove null values and sort keys
+	const noNull = deepRemoveNull<SanitizedObject>(yamlObj, result.object);
+	// sort keys
+	const sortedYamlObj = Object.keys(noNull)
+		.sort()
+		.reduce((acc, key) => {
+			acc[key] = noNull[key];
+			return acc;
+		}, {} as SanitizedObject);
+
 	// set the yaml section
 	const yamlText = stringifyYaml(
-		deepRemoveNull<SanitizedObject>(yamlObj, result.object)
+		plugin.settings.sortYamlKey ? sortedYamlObj : noNull
 	);
 
 	// if old string and new string are the same, do nothing
@@ -250,7 +264,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			this.settings.template,
 			file,
 			data,
-			getAPI(this.app)
+			this
 		);
 		if (newText) {
 			writeFile(editor, data.text, newText);
@@ -266,7 +280,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			this.settings.template,
 			file,
 			data,
-			getAPI(this.app)
+			this
 		);
 		// replace the yaml section
 		if (newText) await this.app.vault.modify(file, newText);
