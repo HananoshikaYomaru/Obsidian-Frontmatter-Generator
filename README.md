@@ -13,9 +13,9 @@ for example, the following frontmatter template
 
 ```ts
 {
- folder: file.parent.path;
- title: file.basename;
- test: ["1", "2"];
+ folder: file.parent.path,
+ title: file.basename,
+ test: ["1", "2"]
 }
 ```
 
@@ -25,8 +25,8 @@ will generate this in the file `Good recipes/scrambled egg.md` on save.
 folder: Good recipes
 title: scrambled egg
 test:
-    - "1"
-    - "2"
+  - '1'
+  - '2'
 ```
 
 - Basic Demo: <https://youtu.be/Cz9d5e1WQVM>
@@ -37,21 +37,21 @@ test:
 ### conditional expression
 
 ```ts
-file.properties?.type === "kanban"
- ? {
-   folder: file.parent.path,
-   title: file.basename,
-   }
- : {};
+file.properties?.type === 'kanban'
+	? {
+			folder: file.parent.path,
+			title: file.basename
+	  }
+	: {}
 ```
 
 ### function
 
 ```ts
 {
- test: (() => {
-  return { test: "test" };
- })();
+	test: (() => {
+		return { test: 'test' }
+	})()
 }
 ```
 
@@ -59,7 +59,7 @@ file.properties?.type === "kanban"
 
 ```ts
 {
- numberOfPages: dv.pages("#ai").length;
+	numberOfPages: dv.pages('#ai').length
 }
 ```
 
