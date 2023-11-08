@@ -29,7 +29,8 @@ test:
     - "2"
 ```
 
-Demo: <https://youtu.be/Cz9d5e1WQVM>
+- Basic Demo: <https://youtu.be/Cz9d5e1WQVM>
+- Tag properties demo: https://www.youtube.com/watch?v=lyhrOG2Sn88&t=16
 
 ## Advanced usage
 
