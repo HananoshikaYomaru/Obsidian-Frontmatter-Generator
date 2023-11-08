@@ -345,29 +345,27 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		this.registerEvent(eventRef2);
 		this.eventRefs.push(eventRef2);
 
-		if (typeof this.previousSaveCommand === "function") {
-			saveCommandDefinition.callback = async () => {
-				// get the editor and file
-				const editor =
-					this.app.workspace.getActiveViewOfType(
-						MarkdownView
-					)?.editor;
-				const file = this.app.workspace.getActiveFile();
-				if (!editor || !file) return;
-				// this cannot be awaited because it will cause the editor to delay saving
-				this.runFileSync(file, editor);
+		saveCommandDefinition.callback = async () => {
+			// get the editor and file
+			const editor =
+				this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+			const file = this.app.workspace.getActiveFile();
+			if (!editor || !file) return;
+			// this cannot be awaited because it will cause the editor to delay saving
+			this.runFileSync(file, editor);
 
-				// run the previous save command
+			// run the previous save command
+			if (typeof this.previousSaveCommand === "function") {
 				this.previousSaveCommand();
+			}
 
-				// defines the vim command for saving a file and lets the linter run on save for it
-				// accounts for https://github.com/platers/obsidian-linter/issues/19
-				const that = this;
-				window.CodeMirrorAdapter.commands.save = () => {
-					that.app.commands.executeCommandById("editor:save-file");
-				};
+			// defines the vim command for saving a file and lets the linter run on save for it
+			// accounts for https://github.com/platers/obsidian-linter/issues/19
+			const that = this;
+			window.CodeMirrorAdapter.commands.save = () => {
+				that.app.commands.executeCommandById("editor:save-file");
 			};
-		}
+		};
 	}
 
 	unregisterEventsAndSaveCallback() {
