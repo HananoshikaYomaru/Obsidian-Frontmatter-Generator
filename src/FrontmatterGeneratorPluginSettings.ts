@@ -4,6 +4,7 @@ export interface FrontmatterGeneratorPluginSettings {
 	internal: {
 		ignoredFolders: string[];
 	};
+	runOnModify: boolean;
 	sortYamlKey: boolean;
 }
 export const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
@@ -12,5 +13,6 @@ export const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
 	internal: {
 		ignoredFolders: [],
 	},
+	runOnModify: false,
 	sortYamlKey: true,
 };

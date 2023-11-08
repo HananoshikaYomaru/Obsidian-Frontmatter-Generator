@@ -1,5 +1,3 @@
-import { SanitizedObject } from "./evalFromExpression";
-
 export function deepRemoveNull<T>(obj: T, obj2: Partial<T>): Partial<T> {
 	if (typeof obj !== "object" || obj === null) {
 		return obj;

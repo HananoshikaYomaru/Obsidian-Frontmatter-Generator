@@ -160,5 +160,17 @@ export class SettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+
+		new Setting(containerEl)
+			.setName("Run on modify")
+			.setDesc("Run the plugin when a file is modified")
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.runOnModify)
+					.onChange(async (value) => {
+						this.plugin.settings.runOnModify = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }

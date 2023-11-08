@@ -29,7 +29,7 @@ import {
 	getDataFromTextSync,
 	isMarkdownFile,
 } from "./utils/obsidian";
-import { getAPI, DataviewApi } from "obsidian-dataview";
+import { getAPI } from "obsidian-dataview";
 import { deepRemoveNull } from "./utils/deepRemoveNull";
 import { z } from "zod";
 
@@ -107,7 +107,10 @@ function getNewTextFromFile(
 	});
 
 	if (!result.success) {
-		createNotice("Invalid template", "red");
+		createNotice(
+			`Invalid template, please check the developer tools for detailed error`,
+			"red"
+		);
 		console.error(result.error.cause);
 		return;
 	}
@@ -147,7 +150,7 @@ function getNewTextFromFile(
 	// if old string and new string are the same, do nothing
 	const newText = `---\n${yamlText}---\n\n${data.body.trim()}`;
 	if (newText === data.text) {
-		createNotice("No changes made", "yellow");
+		// createNotice("No changes made", "yellow");
 		return;
 	}
 
@@ -324,6 +327,24 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		this.registerEvent(eventRef);
 		this.eventRefs.push(eventRef);
 
+		const eventRef2 = this.app.vault.on("modify", async (file) => {
+			if (!this.settings.runOnModify) return;
+			if (file instanceof TFile && isMarkdownFile(file)) {
+				const activeFile = this.app.workspace.getActiveFile();
+				const editor =
+					this.app.workspace.getActiveViewOfType(
+						MarkdownView
+					)?.editor;
+				if (activeFile === file && editor) {
+					this.runFileSync(file, editor);
+				} else {
+					await this.runFile(file);
+				}
+			}
+		});
+		this.registerEvent(eventRef2);
+		this.eventRefs.push(eventRef2);
+
 		if (typeof this.previousSaveCommand === "function") {
 			saveCommandDefinition.callback = async () => {
 				// get the editor and file
@@ -359,7 +380,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	}
 
 	async runAllFiles(app: App) {
-		let numberOfErrors = 0;
+		const errorFiles: { file: TFile; error: Error }[] = [];
 		let lintedFiles = 0;
 		await Promise.all(
 			app.vault.getMarkdownFiles().map(async (file) => {
@@ -367,22 +388,26 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 					try {
 						await this.runFile(file);
 					} catch (e) {
-						numberOfErrors += 1;
+						errorFiles.push({ file, error: e });
 					}
 					lintedFiles++;
 				}
 			})
 		);
 
-		if (numberOfErrors === 0) {
+		if (errorFiles.length === 0) {
 			new Notice(
 				`Obsidian Frontmatter Generator: ${lintedFiles} files are successfully updated.`,
 				userClickTimeout
 			);
 		} else {
 			new Notice(
-				`Obsidian Frontmatter Generator: ${numberOfErrors} files have errors`,
+				`Obsidian Frontmatter Generator: ${errorFiles.length} files have errors. See the developer console for more details.`,
 				userClickTimeout
+			);
+			console.error(
+				"[Frontmatter generator]: The problematic files are",
+				errorFiles
 			);
 		}
 	}
