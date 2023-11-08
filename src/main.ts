@@ -334,15 +334,11 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 				const activeFile = this.app.workspace.getActiveFile();
 				const view =
 					this.app.workspace.getActiveViewOfType(MarkdownView);
-
-				// check if the view.currentMode is MarkdownPreviewView
-
 				const isPreview =
 					view?.currentMode instanceof MarkdownPreviewView;
-
 				const editor = view?.editor;
 				if (activeFile === file && editor) {
-					if (isPreview) this.runFileSync(file, editor);
+					if (isPreview) await this.runFile(file);
 				} else {
 					await this.runFile(file);
 				}
