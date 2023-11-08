@@ -1,7 +1,7 @@
 {
 	"id": "frontmatter-generator",
 	"name": "Frontmatter generator",
-	"version": "1.0.15",
+	"version": "1.0.16",
 	"minAppVersion": "0.15.0",
 	"description": "Generate frontmatter for your notes from json and javascript",
 	"author": "Hananoshika Yomaru",

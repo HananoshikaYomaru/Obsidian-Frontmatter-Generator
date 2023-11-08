@@ -2,6 +2,7 @@ import {
 	App,
 	Editor,
 	EventRef,
+	MarkdownPreviewView,
 	MarkdownView,
 	Notice,
 	Plugin,
@@ -331,12 +332,17 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			if (!this.settings.runOnModify) return;
 			if (file instanceof TFile && isMarkdownFile(file)) {
 				const activeFile = this.app.workspace.getActiveFile();
-				const editor =
-					this.app.workspace.getActiveViewOfType(
-						MarkdownView
-					)?.editor;
+				const view =
+					this.app.workspace.getActiveViewOfType(MarkdownView);
+
+				// check if the view.currentMode is MarkdownPreviewView
+
+				const isPreview =
+					view?.currentMode instanceof MarkdownPreviewView;
+
+				const editor = view?.editor;
 				if (activeFile === file && editor) {
-					this.runFileSync(file, editor);
+					if (isPreview) this.runFileSync(file, editor);
 				} else {
 					await this.runFile(file);
 				}
