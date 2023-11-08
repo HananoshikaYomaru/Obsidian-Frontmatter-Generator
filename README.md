@@ -30,7 +30,7 @@ test:
 ```
 
 - Basic Demo: <https://youtu.be/Cz9d5e1WQVM>
-- Tag properties demo: https://www.youtube.com/watch?v=lyhrOG2Sn88&t=16
+- Tag properties demo: <https://www.youtube.com/watch?v=lyhrOG2Sn88&t=16>
 
 ## Advanced usage
 
@@ -75,7 +75,7 @@ It could be a json or a javascript expression that return an object.
 
 - `file`, the [`TFile`](https://docs.obsidian.md/Reference/TypeScript+API/TFile/TFile) object
 - `file.properties` will access the yaml object of the current file
-- `file.tags` will access the tags of the current file
+- `file.tags` , a `string[]` which will access the tags of the current file. For example `["#book", "#movie"]`
 - `dv`, the [dataview](https://blacksmithgu.github.io/obsidian-dataview/) object (you can only access this if you install and enable the dataview plugin)
 - `z`, the zod object
 
@@ -83,7 +83,7 @@ It could be a json or a javascript expression that return an object.
 
 ### Install on obsidian plugin marketplace
 
-⏳ Still waiting for review and approval: <https://github.com/obsidianmd/obsidian-releases/pull/2502>
+You can find it on obsidian plugin marketplace.
 
 ### Manual Install
 

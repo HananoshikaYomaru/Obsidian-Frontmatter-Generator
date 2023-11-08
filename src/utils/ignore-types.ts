@@ -31,7 +31,7 @@ export type IgnoreType = {
 	placeholder: string;
 };
 
-export const IgnoreTypes: Record<string, IgnoreType> = {
+export const IgnoreTypes = {
 	// mdast node types
 	code: {
 		replaceAction: MDAstTypes.Code,

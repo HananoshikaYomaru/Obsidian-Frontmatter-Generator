@@ -99,7 +99,7 @@ function getNewTextFromFile(
 	const result = evalFromExpression(template, {
 		file: {
 			...file,
-			tags: app.metadataCache.getFileCache(file)?.tags ?? [],
+			tags: data.tags,
 			properties: data.yamlObj,
 		},
 		dv,

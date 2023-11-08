@@ -2,6 +2,8 @@ import { TFolder, TFile, parseYaml, Plugin, Editor } from "obsidian";
 import { stripCr } from "./strings";
 import { getYAMLText, splitYamlAndBody } from "./yaml";
 import { diff_match_patch, DIFF_INSERT, DIFF_DELETE } from "diff-match-patch";
+import { IgnoreTypes, ignoreListOfTypes } from "./ignore-types";
+import { matchTagRegex } from "./regex";
 
 export function isMarkdownFile(file: TFile) {
 	return file && file.extension === "md";
@@ -36,12 +38,22 @@ export const getDataFromTextSync = (text: string) => {
 	const yamlText = getYAMLText(text);
 
 	const { body } = splitYamlAndBody(text);
+
+	const tags: string[] = [];
+	ignoreListOfTypes([IgnoreTypes.yaml], text, (text) => {
+		// get all the tags except the generated ones
+		tags.push(...matchTagRegex(text));
+
+		return text;
+	});
+
 	return {
 		text,
 		yamlText,
 		yamlObj: yamlText
 			? (parseYaml(yamlText) as { [x: string]: any })
 			: null,
+		tags,
 		body,
 	};
 };
