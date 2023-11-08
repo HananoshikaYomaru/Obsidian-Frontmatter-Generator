@@ -22,7 +22,7 @@ export class SettingTab extends PluginSettingTab {
 		const context = {
 			file: {
 				...file,
-				tags: this.app.metadataCache.getFileCache(file)?.tags ?? [],
+				tags: data?.tags,
 				properties: data?.yamlObj,
 			},
 			dv: getAPI(this.app),
