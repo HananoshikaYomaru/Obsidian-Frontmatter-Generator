@@ -436,13 +436,26 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 						).onClick(async () => {
 							const activeFile =
 								this.app.workspace.getActiveFile();
-							const editor =
+							const view =
 								this.app.workspace.getActiveViewOfType(
 									MarkdownView
-								)?.editor;
-							if (activeFile === file && editor) {
+								);
+							const editor = view?.editor;
+							const isUsingPropertiesEditor =
+								view?.getMode() === "source" &&
+								// @ts-ignore
+								!view.currentMode.sourceMode;
+							if (
+								activeFile === file &&
+								editor &&
+								!isUsingPropertiesEditor
+							) {
 								this.runFileSync(file, editor);
-							} else {
+							} else if (
+								activeFile === file &&
+								editor &&
+								isUsingPropertiesEditor
+							) {
 								await this.runFile(file);
 							}
 						});
@@ -486,7 +499,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		const eventRef3 = this.app.workspace.on(
 			"editor-change",
 			async (editor) => {
-				console.log("editor change");
 				const file = this.app.workspace.getActiveFile();
 				const view =
 					this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -497,7 +509,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 							// @ts-ignore
 							!view.currentMode.sourceMode);
 
-					const editor = view?.editor;
 					if (file === file && editor) {
 						if (isUsingPropertiesEditor) await this.runFile(file);
 						else this.runFileSync(file, editor);
@@ -518,9 +529,21 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			if (!editor || !file) return;
 			// if it is not using source mode editor, return
 			// @ts-ignore
-			if (view.getMode() === "source" && view.currentMode.sourceMode) {
-				// this cannot be awaited because it will cause the editor to delay saving
+			const isUsingPropertiesEditor =
+				view?.getMode() === "source" &&
+				// @ts-ignore
+				!view.currentMode.sourceMode;
+			if (editor && !isUsingPropertiesEditor) {
 				this.runFileSync(file, editor);
+			} else if (editor && isUsingPropertiesEditor) {
+				await this.runFile(file);
+
+				// this hack focus the metacache of this file to be prioritized
+				// focus the first property
+				// @ts-ignore
+				view.metadataEditor.focusPropertyAtIndex(0);
+				// focus the editor
+				editor.focus();
 			}
 
 			// run the previous save command
