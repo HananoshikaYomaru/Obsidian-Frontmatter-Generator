@@ -2,7 +2,6 @@ import {
 	App,
 	Editor,
 	EventRef,
-	MarkdownPreviewView,
 	MarkdownView,
 	Notice,
 	Plugin,
@@ -33,6 +32,133 @@ import {
 import { getAPI } from "obsidian-dataview";
 import { deepRemoveNull } from "./utils/deepRemoveNull";
 import { z } from "zod";
+
+import {
+	EditorState,
+	Extension,
+	StateField,
+	StateEffect,
+	Transaction,
+	EditorSelection,
+} from "@codemirror/state";
+import { EditorView, ViewUpdate } from "@codemirror/view";
+import { SelectionRange } from "@codemirror/state";
+import { yamlRegex } from "./utils/regex";
+
+// Define a state effect that represents resetting the selection
+const resetSelectionEffect = StateEffect.define<void>();
+
+// Create a state field to manage the selection
+const noSelectLinesField = StateField.define<boolean>({
+	create() {
+		return false;
+	},
+	update(value, tr) {
+		if (tr.effects.some((e) => e.is(resetSelectionEffect))) {
+			return true;
+		}
+		return value;
+	},
+});
+
+const getYamlFromState = (state: EditorState) => {
+	const docText = state.doc.toString();
+	const yamlMatch = docText.match(yamlRegex);
+	if (yamlMatch) {
+		// YAML exists, get the match position
+		const start = yamlMatch.index!;
+		const end = start + yamlMatch[0].length;
+
+		// Convert these positions to line numbers
+		const startLine = state.doc.lineAt(start).number;
+		const endLine = state.doc.lineAt(end).number;
+
+		return {
+			startLine,
+			endLine,
+			text: yamlMatch[0],
+		};
+	}
+	return null;
+};
+
+// Extension to intercept and adjust selections
+const noSelectLinesExtension: Extension = [
+	noSelectLinesField,
+	EditorView.updateListener.of((update: ViewUpdate) => {
+		if (
+			update.selectionSet ||
+			update.transactions.some((tr) => tr.selection)
+		) {
+			const { state, dispatch } = update.view;
+			const ranges = state.selection.ranges;
+
+			const yaml = getYamlFromState(state);
+			const unselectableLines = new Set<number>();
+
+			// Make the YAML unselectable
+			if (yaml) {
+				const { startLine, endLine } = yaml;
+				for (let line = startLine; line <= endLine; line++) {
+					unselectableLines.add(line);
+				}
+			}
+
+			let newRanges: SelectionRange[] = [];
+			let oldRanges: SelectionRange[] = [];
+			let shouldUpdate = false;
+
+			if (yaml) {
+				for (let range of ranges) {
+					let fromLine = state.doc.lineAt(range.from).number;
+					let toLine = state.doc.lineAt(range.to).number;
+
+					if (
+						unselectableLines.has(fromLine) ||
+						unselectableLines.has(toLine)
+					) {
+						// the last line of yaml
+
+						// Example: Skip adding this range if it's completely unselectable
+						shouldUpdate = true;
+
+						// push a range with out the unselectable lines
+						newRanges.push(
+							EditorSelection.range(
+								// anchor - the end of unslectable lines
+								state.doc.line(yaml.endLine + 1).from,
+								// head
+								state.doc.line(toLine).to
+							)
+						);
+						continue;
+					}
+
+					// Add the range as is if it's selectable
+					oldRanges.push(range);
+				}
+			}
+
+			if (shouldUpdate) {
+				const selection = EditorSelection.create(
+					// remove the unselectable lines
+					newRanges as readonly SelectionRange[]
+				);
+				// for each new ranges, run selection.addRange
+
+				for (let range of newRanges) {
+					selection.addRange(range);
+				}
+
+				// Create a new transaction with the updated selection
+				const tr = state.update({
+					selection: selection,
+				});
+				dispatch(tr);
+			}
+		}
+	}),
+];
 
 const userClickTimeout = 5000;
 
@@ -150,7 +276,8 @@ function getNewTextFromFile(
 
 	// if old string and new string are the same, do nothing
 	const newText = `---\n${yamlText}---\n\n${data.body.trim()}`;
-	if (newText === data.text) {
+	// if the new yaml text is the same as the old one, do nothing
+	if (yamlText === data.yamlText || newText === data.text) {
 		// createNotice("No changes made", "yellow");
 		return;
 	}
@@ -234,6 +361,8 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		this.addCommands();
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SettingTab(this.app, this));
+
+		this.registerEditorExtension(noSelectLinesExtension);
 	}
 
 	onunload() {
@@ -270,8 +399,10 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			data,
 			this
 		);
+
 		if (newText) {
 			writeFile(editor, data.text, newText);
+			// update the metadata editor
 		}
 	}
 
@@ -334,11 +465,16 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 				const activeFile = this.app.workspace.getActiveFile();
 				const view =
 					this.app.workspace.getActiveViewOfType(MarkdownView);
-				const isPreview =
-					view?.currentMode instanceof MarkdownPreviewView;
+				const isUsingPropertiesEditor =
+					view?.getMode() === "preview" ||
+					(view?.getMode() === "source" &&
+						// @ts-ignore
+						!view.currentMode.sourceMode);
+				// the markdown preview type is not complete
+				// view.currentMode.type === "source" / "preview"
 				const editor = view?.editor;
 				if (activeFile === file && editor) {
-					if (isPreview) await this.runFile(file);
+					if (isUsingPropertiesEditor) await this.runFile(file);
 				} else {
 					await this.runFile(file);
 				}
@@ -347,14 +483,45 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		this.registerEvent(eventRef2);
 		this.eventRefs.push(eventRef2);
 
+		const eventRef3 = this.app.workspace.on(
+			"editor-change",
+			async (editor) => {
+				console.log("editor change");
+				const file = this.app.workspace.getActiveFile();
+				const view =
+					this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (file instanceof TFile && isMarkdownFile(file)) {
+					const isUsingPropertiesEditor =
+						view?.getMode() === "preview" ||
+						(view?.getMode() === "source" &&
+							// @ts-ignore
+							!view.currentMode.sourceMode);
+
+					const editor = view?.editor;
+					if (file === file && editor) {
+						if (isUsingPropertiesEditor) await this.runFile(file);
+						else this.runFileSync(file, editor);
+					} else {
+						await this.runFile(file);
+					}
+				}
+			}
+		);
+		this.registerEvent(eventRef3);
+		this.eventRefs.push(eventRef3);
+
 		saveCommandDefinition.callback = async () => {
 			// get the editor and file
-			const editor =
-				this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			const editor = view?.editor;
 			const file = this.app.workspace.getActiveFile();
 			if (!editor || !file) return;
-			// this cannot be awaited because it will cause the editor to delay saving
-			this.runFileSync(file, editor);
+			// if it is not using source mode editor, return
+			// @ts-ignore
+			if (view.getMode() === "source" && view.currentMode.sourceMode) {
+				// this cannot be awaited because it will cause the editor to delay saving
+				this.runFileSync(file, editor);
+			}
 
 			// run the previous save command
 			if (typeof this.previousSaveCommand === "function") {
