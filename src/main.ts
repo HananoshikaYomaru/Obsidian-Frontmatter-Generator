@@ -289,6 +289,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	settings: FrontmatterGeneratorPluginSettings;
 	private eventRefs: EventRef[] = [];
 	private previousSaveCommand: () => void;
+	private lock = false;
 
 	addCommands() {
 		const that = this;
@@ -407,6 +408,8 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	}
 
 	async runFile(file: TFile) {
+		// remove the selction of the current editor
+
 		const data = await getDataFromFile(this, file);
 		if (shouldIgnoreFile(this.settings, file, data)) return;
 
@@ -474,6 +477,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		const eventRef2 = this.app.vault.on("modify", async (file) => {
 			if (!this.settings.runOnModify) return;
+			if (this.lock) return;
 			if (file instanceof TFile && isMarkdownFile(file)) {
 				const activeFile = this.app.workspace.getActiveFile();
 				const view =
@@ -499,6 +503,8 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 		const eventRef3 = this.app.workspace.on(
 			"editor-change",
 			async (editor) => {
+				if (this.lock) return;
+				this.lock = true;
 				const file = this.app.workspace.getActiveFile();
 				const view =
 					this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -516,6 +522,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 						await this.runFile(file);
 					}
 				}
+				this.lock = false;
 			}
 		);
 		this.registerEvent(eventRef3);
