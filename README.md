@@ -29,6 +29,8 @@ test:
   - '2'
 ```
 
+3. install [obsidian-custom-save](https://github.com/HananoshikaYomaru/obsidian-custom-save) and add the `frontmatter-generator: run file` command to the custom save actions
+
 - Basic Demo: <https://youtu.be/Cz9d5e1WQVM>
 - Tag properties demo: <https://www.youtube.com/watch?v=lyhrOG2Sn88&t=16>
 
@@ -38,20 +40,20 @@ test:
 
 ```ts
 file.properties?.type === 'kanban'
-	? {
-			folder: file.parent.path,
-			title: file.basename
-	  }
-	: {}
+ ? {
+   folder: file.parent.path,
+   title: file.basename
+   }
+ : {}
 ```
 
 ### function
 
 ```ts
 {
-	test: (() => {
-		return { test: 'test' }
-	})()
+ test: (() => {
+  return { test: 'test' }
+ })()
 }
 ```
 
@@ -59,7 +61,7 @@ file.properties?.type === 'kanban'
 
 ```ts
 {
-	numberOfPages: dv.pages('#ai').length
+ numberOfPages: dv.pages('#ai').length
 }
 ```
 
