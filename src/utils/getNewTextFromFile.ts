@@ -26,6 +26,7 @@ export function getNewTextFromFile(
 ) {
 	const app = plugin.app;
 	const dv = getAPI(app);
+
 	const result = evalFromExpression(template, {
 		file: {
 			...file,

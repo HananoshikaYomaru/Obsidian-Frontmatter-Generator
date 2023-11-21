@@ -143,6 +143,8 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	runFileSync(file: TFile, editor: Editor) {
 		const data = getDataFromTextSync(editor.getValue());
 		if (shouldIgnoreFile(this.settings, file, data)) return;
+		const invalidFrontmatter = data.text && !data.yamlText && !data.body;
+		if (invalidFrontmatter) return;
 		const newText = getNewTextFromFile(
 			this.settings.template,
 			file,
@@ -268,10 +270,13 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 								// @ts-ignore
 								!view.currentMode.sourceMode);
 
-						if (file === file && editor) {
+						if (editor) {
 							if (isUsingPropertiesEditor)
 								await this.runFile(file);
-							else this.runFileSync(file, editor);
+							else {
+								console.log("running file sync");
+								this.runFileSync(file, editor);
+							}
 						} else {
 							await this.runFile(file);
 						}
