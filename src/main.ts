@@ -163,7 +163,8 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		const data = await getDataFromFile(this, file);
 		if (shouldIgnoreFile(this.settings, file, data)) return;
-
+		const invalidFrontmatter = data.text && !data.yamlText && !data.body;
+		if (invalidFrontmatter) return;
 		// from the frontmatter template and the file, generate some new properties
 		const newText = getNewTextFromFile(
 			this.settings.template,
