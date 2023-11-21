@@ -1,5 +1,3 @@
-import { makeSureContentHasEmptyLinesAddedBeforeAndAfter } from "./strings";
-
 // Useful regexes
 export const allHeadersRegex = /^([ \t]*)(#+)([ \t]+)([^\n\r]*?)([ \t]+#+)?$/gm;
 export const fencedRegexTemplate =

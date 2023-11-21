@@ -1,23 +1,10 @@
 import { visit } from "unist-util-visit";
 import type { Position } from "unist";
 import type { Root } from "mdast";
+import { hashString53Bit } from "./strings";
 import {
-	hashString53Bit,
-	makeSureContentHasEmptyLinesAddedBeforeAndAfter,
-	replaceTextBetweenStartAndEndWithNewValue,
-	getStartOfLineIndex,
-	replaceAt,
-	countInstances,
-} from "./strings";
-import {
-	genericLinkRegex,
-	tableRow,
-	tableSeparator,
-	tableStartingPipe,
 	customIgnoreAllStartIndicator,
 	customIgnoreAllEndIndicator,
-	checklistBoxStartsTextRegex,
-	footnoteDefinitionIndicatorAtStartOfLine,
 } from "./regex";
 import { gfmFootnote } from "micromark-extension-gfm-footnote";
 import { gfmTaskListItem } from "micromark-extension-gfm-task-list-item";

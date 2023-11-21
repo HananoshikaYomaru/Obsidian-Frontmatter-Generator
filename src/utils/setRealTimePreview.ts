@@ -4,6 +4,7 @@ export const setRealTimePreview = (
 	element: HTMLElement,
 	result: EvalResult,
 	context?: {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		[x: string]: any;
 	}
 ) => {
