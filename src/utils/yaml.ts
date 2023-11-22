@@ -1,6 +1,7 @@
 import { load, dump } from "js-yaml";
 import { escapeDollarSigns, yamlRegex } from "./regex";
-import { isNumeric } from "./strings";
+import { isNumeric, trimFirstSpaces } from "./strings";
+import { Data } from "@/utils/obsidian";
 
 export const OBSIDIAN_TAG_KEY_SINGULAR = "tag";
 export const OBSIDIAN_TAG_KEY_PLURAL = "tags";
@@ -500,4 +501,23 @@ export const splitYamlAndBody = (markdown: string) => {
 		yaml: parts[1],
 		body: parts.slice(2).join("---"),
 	};
+};
+
+export const isValidFrontmatter = (data: Data) => {
+	const { yamlText, text } = data;
+
+	if (!yamlText) {
+		const textAfterTrimFirstSpace = trimFirstSpaces(text);
+		// try to get new yaml text
+		const yamlText = getYAMLText(textAfterTrimFirstSpace);
+		if (yamlText) {
+			// console.log(
+			// 	"frontmatter is not valid because there is a space before the yaml"
+			// );
+			return false;
+		}
+	}
+	if (data.text && !data.yamlText && !data.body) return false;
+
+	return true;
 };

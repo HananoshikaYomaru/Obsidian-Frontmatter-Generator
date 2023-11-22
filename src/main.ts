@@ -24,6 +24,7 @@ import {
 } from "./utils/obsidian";
 import { shouldIgnoreFile } from "./utils/shouldIgnoreFile";
 import { getNewTextFromFile } from "./utils/getNewTextFromFile";
+import { isValidFrontmatter } from "@/utils/yaml";
 
 const userClickTimeout = 5000;
 
@@ -143,8 +144,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 	runFileSync(file: TFile, editor: Editor) {
 		const data = getDataFromTextSync(editor.getValue());
 		if (shouldIgnoreFile(this.settings, file, data)) return;
-		const invalidFrontmatter = data.text && !data.yamlText && !data.body;
-		if (invalidFrontmatter) return;
+		if (!isValidFrontmatter(data)) return;
 		const newText = getNewTextFromFile(
 			this.settings.template,
 			file,
@@ -163,8 +163,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		const data = await getDataFromFile(this, file);
 		if (shouldIgnoreFile(this.settings, file, data)) return;
-		const invalidFrontmatter = data.text && !data.yamlText && !data.body;
-		if (invalidFrontmatter) return;
+		if (!isValidFrontmatter(data)) return;
 		// from the frontmatter template and the file, generate some new properties
 		const newText = getNewTextFromFile(
 			this.settings.template,
@@ -223,6 +222,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on("modify", async (file) => {
+				console.log("modify", file);
 				if (!this.settings.runOnModify) return;
 				if (this.lock) return;
 				try {

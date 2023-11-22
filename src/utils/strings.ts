@@ -450,3 +450,11 @@ export function isNumeric(str: string) {
 export function stripCr(text: string) {
 	return text.replace(/\r/g, "");
 }
+
+export function trimFirstSpaces(input: string) {
+	// Get the index of the last space of the leading space group
+	const leadingSpaces = input.match(/^[ \t]+/);
+	const start = leadingSpaces ? leadingSpaces[0].length : 0;
+	// Replace start and end spaces using the indices
+	return input.substring(start);
+}
