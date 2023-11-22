@@ -1,6 +1,6 @@
 {
   "name": "obsidian-frontmatter-generator",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "A plugin for Obsidian that generates frontmatter for notes.",
   "main": "main.js",
   "scripts": {
