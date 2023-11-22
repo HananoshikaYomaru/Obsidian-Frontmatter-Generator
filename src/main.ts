@@ -275,7 +275,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 							if (isUsingPropertiesEditor)
 								await this.runFile(file);
 							else {
-								console.log("running file sync");
 								this.runFileSync(file, editor);
 							}
 						} else {
