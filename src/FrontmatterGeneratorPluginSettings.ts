@@ -4,7 +4,14 @@ export interface FrontmatterGeneratorPluginSettings {
 	internal: {
 		ignoredFolders: string[];
 	};
-	runOnModify: boolean;
+	/**
+	 * run on modify when user is not in the file
+	 */
+	runOnModifyNotInFile: boolean;
+	/**
+	 * run on modify when user is in the file
+	 */
+	runOnModifyInFile: boolean;
 	sortYamlKey: boolean;
 }
 export const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
@@ -13,6 +20,7 @@ export const DEFAULT_SETTINGS: FrontmatterGeneratorPluginSettings = {
 	internal: {
 		ignoredFolders: [],
 	},
-	runOnModify: false,
+	runOnModifyNotInFile: false,
+	runOnModifyInFile: false,
 	sortYamlKey: true,
 };

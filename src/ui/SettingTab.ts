@@ -162,13 +162,29 @@ export class SettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Run on modify")
-			.setDesc("Run the plugin when a file is modified")
+			.setName("Run on modify not in file")
+			.setDesc(
+				"Run the plugin when a file is modified and the file is not in active markdown view"
+			)
 			.addToggle((toggle) => {
 				toggle
-					.setValue(this.plugin.settings.runOnModify)
+					.setValue(this.plugin.settings.runOnModifyNotInFile)
 					.onChange(async (value) => {
-						this.plugin.settings.runOnModify = value;
+						this.plugin.settings.runOnModifyNotInFile = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("Run on modify in file")
+			.setDesc(
+				"Run the plugin when a file is modified and the file is in active markdown view"
+			)
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.runOnModifyInFile)
+					.onChange(async (value) => {
+						this.plugin.settings.runOnModifyInFile = value;
 						await this.plugin.saveSettings();
 					});
 			});

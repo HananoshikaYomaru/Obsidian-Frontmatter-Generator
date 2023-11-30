@@ -222,23 +222,34 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on("modify", async (file) => {
-				if (!this.settings.runOnModify) return;
+				const view =
+					this.app.workspace.getActiveViewOfType(MarkdownView);
+				const isUsingPropertiesEditor =
+					view?.getMode() === "preview" ||
+					(view?.getMode() === "source" &&
+						// @ts-ignore
+						!view.currentMode.sourceMode);
+				// the markdown preview type is not complete
+				// view.currentMode.type === "source" / "preview"
+				const editor = view?.editor;
+
+				// get current file from the active view
+				const activeFile = this.app.workspace.getActiveFile();
+
+				// even if the active file is the target file, we still need to check if the user is using the properties editor
+				if (
+					!this.settings.runOnModifyInFile &&
+					activeFile === file &&
+					editor &&
+					!isUsingPropertiesEditor
+				)
+					return;
+
+				if (!this.settings.runOnModifyNotInFile && activeFile !== file)
+					return;
 				if (this.lock) return;
 				try {
 					if (file instanceof TFile && isMarkdownFile(file)) {
-						const activeFile = this.app.workspace.getActiveFile();
-						const view =
-							this.app.workspace.getActiveViewOfType(
-								MarkdownView
-							);
-						const isUsingPropertiesEditor =
-							view?.getMode() === "preview" ||
-							(view?.getMode() === "source" &&
-								// @ts-ignore
-								!view.currentMode.sourceMode);
-						// the markdown preview type is not complete
-						// view.currentMode.type === "source" / "preview"
-						const editor = view?.editor;
 						if (activeFile === file && editor) {
 							if (isUsingPropertiesEditor)
 								await this.runFile(file);
@@ -256,8 +267,7 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.workspace.on("editor-change", async (editor) => {
-				if (!this.settings.runOnModify) return;
-				if (this.lock) return;
+				if (!this.settings.runOnModifyInFile) return;
 				this.lock = true;
 				try {
 					const file = this.app.workspace.getActiveFile();
