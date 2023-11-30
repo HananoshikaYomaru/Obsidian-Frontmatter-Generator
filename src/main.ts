@@ -181,40 +181,40 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 			this.app.workspace.on("file-menu", async (menu, file) => {
 				if (file instanceof TFile && isMarkdownFile(file)) {
 					menu.addItem((item) => {
-						item.setTitle(
-							"Generate frontmatter for this file"
-						).onClick(async () => {
-							const activeFile =
-								this.app.workspace.getActiveFile();
-							const view =
-								this.app.workspace.getActiveViewOfType(
-									MarkdownView
-								);
-							const editor = view?.editor;
-							const isUsingPropertiesEditor =
-								view?.getMode() === "source" &&
-								// @ts-ignore
-								!view.currentMode.sourceMode;
-							if (
-								activeFile === file &&
-								editor &&
-								!isUsingPropertiesEditor
-							) {
-								this.runFileSync(file, editor);
-							} else if (
-								activeFile === file &&
-								editor &&
-								isUsingPropertiesEditor
-							) {
-								await this.runFile(file);
-							}
-						});
+						item.setIcon("file-cog")
+							.setTitle("Generate frontmatter for this file")
+							.onClick(async () => {
+								const activeFile =
+									this.app.workspace.getActiveFile();
+								const view =
+									this.app.workspace.getActiveViewOfType(
+										MarkdownView
+									);
+								const editor = view?.editor;
+								const isUsingPropertiesEditor =
+									view?.getMode() === "source" &&
+									// @ts-ignore
+									!view.currentMode.sourceMode;
+								if (
+									activeFile === file &&
+									editor &&
+									!isUsingPropertiesEditor
+								) {
+									this.runFileSync(file, editor);
+								} else if (
+									activeFile === file &&
+									editor &&
+									isUsingPropertiesEditor
+								) {
+									await this.runFile(file);
+								}
+							});
 					});
 				} else if (file instanceof TFolder) {
 					menu.addItem((item) => {
-						item.setTitle(
-							"Generate frontmatter in this folder"
-						).onClick(() => this.runAllFilesInFolder(file));
+						item.setIcon("file-cog")
+							.setTitle("Generate frontmatter in this folder")
+							.onClick(() => this.runAllFilesInFolder(file));
 					});
 				}
 			})
@@ -222,7 +222,6 @@ export default class FrontmatterGeneratorPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on("modify", async (file) => {
-				console.log("modify", file);
 				if (!this.settings.runOnModify) return;
 				if (this.lock) return;
 				try {

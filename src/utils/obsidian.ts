@@ -37,9 +37,18 @@ export function getAllFilesInFolder(startingFolder: TFolder): TFile[] {
 export const getDataFromTextSync = (text: string) => {
 	const yamlText = getYAMLText(text);
 
+	const yamlObj = yamlText
+		? (parseYaml(yamlText) as { [x: string]: any })
+		: null;
+
 	const { body } = splitYamlAndBody(text);
 
-	const tags: string[] = [];
+	const yamlTags = yamlObj?.tags as string | string[] | undefined;
+
+	// if tags is a string, convert it to an array
+	const _tags = typeof yamlTags === "string" ? [yamlTags] : yamlTags;
+
+	const tags: string[] = _tags ? _tags.map((t) => `#${t}`) : [];
 	ignoreListOfTypes([IgnoreTypes.yaml], text, (text) => {
 		// get all the tags except the generated ones
 		tags.push(...matchTagRegex(text));
@@ -47,12 +56,12 @@ export const getDataFromTextSync = (text: string) => {
 		return text;
 	});
 
+	console.log(tags);
+
 	return {
 		text,
 		yamlText,
-		yamlObj: yamlText
-			? (parseYaml(yamlText) as { [x: string]: any })
-			: null,
+		yamlObj,
 		tags,
 		body,
 	};
